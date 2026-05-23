@@ -201,7 +201,7 @@ export default function AdminPage() {
                     { label: "Session Strategy", value: "JWT · 24h expiry" },
                     { label: "PDF Engine", value: "jsPDF + autotable" },
                     { label: "Deployment", value: "Netlify" },
-                    { label: "Admin Email", value: "adityasingh018adi@gmail.com" },
+                    { label: "Admin Email", value: "Configured via env vars" },
                     { label: "App Version", value: "v1.0.0" },
                   ].map((row) => (
                     <div key={row.label} className="flex justify-between items-center py-1.5 border-b border-slate-50 dark:border-slate-700/50 last:border-0">

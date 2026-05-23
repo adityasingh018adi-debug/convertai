@@ -13,9 +13,10 @@ const handler = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const adminEmail = process.env.ADMIN_EMAIL || "adityasingh018adi@gmail.com";
-        const adminPassword = process.env.ADMIN_PASSWORD || "ConvertAI@2025#Admin";
-        const adminName = process.env.ADMIN_NAME || "Aditya Singh";
+        const adminEmail = process.env.ADMIN_EMAIL;
+        const adminPassword = process.env.ADMIN_PASSWORD;
+        const adminName = process.env.ADMIN_NAME || "Admin";
+        if (!adminEmail || !adminPassword) return null;
 
         if (credentials.email !== adminEmail) return null;
 
