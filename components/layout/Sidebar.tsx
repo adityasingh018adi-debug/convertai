@@ -15,7 +15,6 @@ import {
   LayoutTemplate,
   Archive,
   Trash2,
-  Crown,
   Sun,
   Moon,
   X,
@@ -132,24 +131,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
           ))}
         </nav>
-
-        {/* Premium card */}
-        <div className="px-3 mb-3">
-          <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/10 border border-amber-500/30 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Crown size={16} className="text-amber-400" />
-              <span className="text-sm font-semibold text-amber-400">
-                Go Premium
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 mb-3">
-              Unlock unlimited AI features & no watermarks.
-            </p>
-            <button className="w-full bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold py-2 rounded-lg transition-colors duration-200">
-              Upgrade Now →
-            </button>
-          </div>
-        </div>
 
         {/* User + dark mode */}
         <div className="px-3 pb-4 border-t border-slate-700 pt-3">
