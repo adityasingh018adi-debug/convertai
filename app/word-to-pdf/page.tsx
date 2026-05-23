@@ -6,12 +6,11 @@ import { TopNav } from "@/components/layout/TopNav";
 import { FileText, CheckCircle, Download, ArrowRight, Upload, X, File } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import jsPDF from "jspdf";
 
 const steps = [
-  { step: "1", title: "Upload Word File", desc: "Drop your .docx or .doc file below" },
-  { step: "2", title: "AI Processing", desc: "Engine converts with perfect formatting" },
-  { step: "3", title: "Download PDF", desc: "Get your PDF instantly, ready to share" },
+  { step: "1", title: "Upload Word File", desc: "Drop your .docx file below" },
+  { step: "2", title: "Processing", desc: "Converts with full formatting preserved" },
+  { step: "3", title: "Download PDF", desc: "Get your PDF instantly" },
 ];
 
 export default function WordToPdfPage() {
@@ -42,68 +41,84 @@ export default function WordToPdfPage() {
     try {
       const arrayBuffer = await file.arrayBuffer();
       const mammothMod = await import("mammoth");
-      const mammoth = mammothMod.default ?? mammothMod;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await (mammoth as any).extractRawText({ arrayBuffer });
-      const rawText: string = result.value || "";
+      const mammoth = (mammothMod as any).default ?? mammothMod;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await (mammoth as any).convertToHtml({ arrayBuffer });
+      const html: string = result.value || "<p>No content found.</p>";
 
-      const doc = new jsPDF({ unit: "mm", format: "a4" });
-      const margin = 20;
-      const pageWidth = 210 - margin * 2;
-      const lineHeight = 6;
-      let y = 20;
+      // Build a styled A4 container off-screen
+      const container = document.createElement("div");
+      container.style.cssText = [
+        "position:fixed",
+        "top:-99999px",
+        "left:-99999px",
+        "width:794px",
+        "min-height:1123px",
+        "background:#fff",
+        "padding:80px 90px",
+        "font-family:'Times New Roman',serif",
+        "font-size:12pt",
+        "line-height:1.65",
+        "color:#000",
+      ].join(";");
 
-      // Header bar
-      doc.setFillColor(15, 23, 42);
-      doc.rect(0, 0, 210, 14, "F");
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "normal");
-      doc.text("ConvertAI — Word to PDF", 105, 9, { align: "center" });
+      container.innerHTML = `
+        <style>
+          *{box-sizing:border-box;}
+          h1{font-size:20pt;font-weight:bold;margin:16px 0 8px;}
+          h2{font-size:16pt;font-weight:bold;margin:14px 0 6px;}
+          h3{font-size:13pt;font-weight:bold;margin:12px 0 5px;}
+          p{margin:0 0 8px;}
+          table{border-collapse:collapse;width:100%;margin:12px 0;}
+          td,th{border:1px solid #333;padding:6px 10px;text-align:left;}
+          th{background:#f0f0f0;font-weight:bold;}
+          ul,ol{margin:8px 0 8px 28px;}
+          li{margin:3px 0;}
+          strong,b{font-weight:bold;}
+          em,i{font-style:italic;}
+          u{text-decoration:underline;}
+          hr{border:none;border-top:1px solid #ccc;margin:12px 0;}
+        </style>
+        ${html}
+      `;
+      document.body.appendChild(container);
 
-      y = 22;
-      doc.setTextColor(15, 23, 42);
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+      document.body.removeChild(container);
 
-      const paragraphs = rawText.split(/\n+/).filter((p) => p.trim().length > 0);
+      const jsPDF = (await import("jspdf")).default;
+      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
 
-      for (const para of paragraphs) {
-        const trimmed = para.trim();
-        if (!trimmed) continue;
+      const pageW = 210;
+      const pageH = 297;
+      const imgW = pageW;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      const imgData = canvas.toDataURL("image/jpeg", 0.97);
 
-        // Detect heading-like lines (short, no period at end)
-        const isHeading = trimmed.length < 80 && !trimmed.endsWith(".") && trimmed === trimmed.toUpperCase();
+      let remaining = imgH;
+      let srcY = 0;
 
-        if (isHeading) {
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(12);
-        } else {
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(10);
-        }
-
-        const lines = doc.splitTextToSize(trimmed, pageWidth);
-        for (const line of lines) {
-          if (y > 270) {
-            doc.addPage();
-            y = 20;
-          }
-          doc.text(line, margin, y);
-          y += isHeading ? lineHeight + 2 : lineHeight;
-        }
-        y += isHeading ? 4 : 2;
+      while (remaining > 0) {
+        const sliceH = Math.min(remaining, pageH);
+        const sliceCanvas = document.createElement("canvas");
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = (sliceH * canvas.width) / imgW;
+        const ctx = sliceCanvas.getContext("2d")!;
+        ctx.drawImage(canvas, 0, srcY * (canvas.width / imgW), canvas.width, sliceCanvas.height, 0, 0, sliceCanvas.width, sliceCanvas.height);
+        pdf.addImage(sliceCanvas.toDataURL("image/jpeg", 0.97), "JPEG", 0, 0, imgW, sliceH);
+        remaining -= sliceH;
+        srcY += sliceH;
+        if (remaining > 0) pdf.addPage();
       }
 
-      // Footer
-      const pageCount = doc.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(7);
-        doc.setTextColor(180, 180, 180);
-        doc.text(`Generated by ConvertAI  ·  Page ${i} of ${pageCount}`, 105, 290, { align: "center" });
-      }
-
-      const blob = doc.output("blob");
-      setPdfBlob(blob);
+      setPdfBlob(pdf.output("blob"));
       setConverted(true);
     } catch (err) {
       console.error(err);
@@ -131,7 +146,6 @@ export default function WordToPdfPage() {
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">
           <div className="max-w-3xl mx-auto space-y-6">
 
-            {/* Header */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
               className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-200 dark:shadow-blue-900/40">
@@ -139,11 +153,10 @@ export default function WordToPdfPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white">Word to PDF</h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Convert .docx / .doc to PDF with perfect formatting</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Converts .docx to PDF preserving tables, bold, headings & layout</p>
               </div>
             </motion.div>
 
-            {/* Steps */}
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
               className="grid grid-cols-3 gap-3">
               {steps.map((s, i) => (
@@ -166,7 +179,6 @@ export default function WordToPdfPage() {
               ))}
             </motion.div>
 
-            {/* Drop Zone */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
               <div
                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -176,7 +188,7 @@ export default function WordToPdfPage() {
                   "relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed transition-all duration-200 cursor-pointer min-h-52",
                   isDragging ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 scale-[1.01]" :
                   file ? "border-blue-400 bg-blue-50/50 dark:bg-blue-900/10 dark:border-blue-700" :
-                  "border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-blue-300 hover:bg-blue-50/30 dark:hover:bg-slate-700/50"
+                  "border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-blue-300 hover:bg-blue-50/30"
                 )}
               >
                 <input type="file" accept=".doc,.docx" onChange={handleFileInput}
@@ -201,9 +213,7 @@ export default function WordToPdfPage() {
                       <Upload size={26} className="text-slate-400" />
                     </div>
                     <div className="text-center">
-                      <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
-                        Drag & drop your Word file here
-                      </p>
+                      <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">Drag & drop your Word file here</p>
                       <p className="text-xs text-slate-400 mt-1">or <span className="text-blue-500 font-semibold">browse to upload</span></p>
                       <p className="text-xs text-slate-400 mt-2">Supports .doc, .docx · Max 50MB</p>
                     </div>
@@ -219,7 +229,6 @@ export default function WordToPdfPage() {
               </motion.div>
             )}
 
-            {/* Convert Button */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
               className="flex items-center gap-3">
               <button onClick={handleConvert} disabled={!file || converting || converted}
@@ -241,7 +250,6 @@ export default function WordToPdfPage() {
               {!file && <p className="text-xs text-slate-400">Upload a Word file first</p>}
             </motion.div>
 
-            {/* Result */}
             {converted && pdfBlob && (
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
                 className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-2xl p-5 flex items-center justify-between">
