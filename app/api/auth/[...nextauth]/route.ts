@@ -2,11 +2,6 @@ import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 
-const adminPasswordHash = bcrypt.hashSync(
-  process.env.ADMIN_PASSWORD || "ConvertAI@2025#Admin",
-  10
-);
-
 const handler = NextAuth({
   providers: [
     CredentialsProvider({
@@ -19,10 +14,12 @@ const handler = NextAuth({
         if (!credentials?.email || !credentials?.password) return null;
 
         const adminEmail = process.env.ADMIN_EMAIL || "adityasingh018adi@gmail.com";
+        const adminPassword = process.env.ADMIN_PASSWORD || "ConvertAI@2025#Admin";
         const adminName = process.env.ADMIN_NAME || "Aditya Singh";
 
         if (credentials.email !== adminEmail) return null;
 
+        const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
         const valid = await bcrypt.compare(credentials.password, adminPasswordHash);
         if (!valid) return null;
 
