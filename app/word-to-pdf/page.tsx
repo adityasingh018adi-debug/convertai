@@ -5,32 +5,31 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
 import {
   FileText, CheckCircle, Download, ArrowRight,
-  Upload, X, File, Loader2, Zap,
+  Upload, X, File, Loader2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-const API_URL = process.env.NEXT_PUBLIC_CONVERT_API_URL ?? "";
+const API = process.env.NEXT_PUBLIC_CONVERT_API_URL ?? "";
 
 const steps = [
-  { step: "1", title: "Upload Word File", desc: "Drop your .docx file below" },
+  { step: "1", title: "Upload Word File", desc: "Drop your .docx or .doc file" },
   { step: "2", title: "Converting",       desc: "LibreOffice renders every detail" },
-  { step: "3", title: "Download PDF",     desc: "Direct save — exact colors & fonts" },
+  { step: "3", title: "Download PDF",     desc: "Exact colors, fonts & layout" },
 ];
 
 export default function WordToPdfPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [file, setFile]           = useState<File | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [converting, setConverting] = useState(false);
-  const [progress,  setProgress]   = useState("");
-  const [converted, setConverted]  = useState(false);
-  const [pdfBlob,   setPdfBlob]    = useState<Blob | null>(null);
-  const [error,     setError]      = useState("");
+  const [file,       setFile]         = useState<File | null>(null);
+  const [isDragging, setIsDragging]   = useState(false);
+  const [converting, setConverting]   = useState(false);
+  const [progress,   setProgress]     = useState("");
+  const [converted,  setConverted]    = useState(false);
+  const [pdfBlob,    setPdfBlob]      = useState<Blob | null>(null);
+  const [error,      setError]        = useState("");
 
   const reset = () => {
-    setFile(null); setConverted(false); setPdfBlob(null);
-    setError(""); setProgress("");
+    setFile(null); setConverted(false); setPdfBlob(null); setError(""); setProgress("");
   };
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -44,115 +43,28 @@ export default function WordToPdfPage() {
     if (f) { setFile(f); setConverted(false); setPdfBlob(null); setError(""); }
   };
 
-  /* ── LibreOffice API conversion ─────────────────────────────────────────── */
-  const convertViaApi = async (f: File): Promise<Blob> => {
-    setProgress("Uploading to conversion server…");
-    const form = new FormData();
-    form.append("file", f);
-
-    const resp = await fetch(`${API_URL}/convert/word-to-pdf`, {
-      method: "POST",
-      body: form,
-    });
-
-    if (!resp.ok) {
-      const json = await resp.json().catch(() => ({}));
-      throw new Error(json.error ?? `Server error ${resp.status}`);
-    }
-    setProgress("Receiving PDF…");
-    return resp.blob();
-  };
-
-  /* ── Browser-based fallback (docx-preview + html2canvas + jsPDF) ────────── */
-  const convertInBrowser = async (f: File): Promise<Blob> => {
-    const arrayBuffer = await f.arrayBuffer();
-
-    setProgress("Rendering document…");
-    const { renderAsync } = await import("docx-preview");
-
-    const wrapper = document.createElement("div");
-    wrapper.style.cssText =
-      "position:fixed;left:-9999px;top:0;" +
-      "width:794px;background:#fff;" +
-      "z-index:-1;pointer-events:none;";
-    document.body.appendChild(wrapper);
-
-    try {
-      await renderAsync(new Uint8Array(arrayBuffer), wrapper, undefined, {
-        className:       "docx",
-        inWrapper:       true,
-        ignoreWidth:     false,
-        ignoreHeight:    false,
-        ignoreFonts:     false,
-        breakPages:      true,
-        useBase64URL:    true,
-        renderHeaders:   true,
-        renderFooters:   true,
-        renderFootnotes: true,
-      });
-
-      const pageSections = Array.from(
-        wrapper.querySelectorAll<HTMLElement>(".docx-wrapper section")
-      );
-      if (pageSections.length === 0) {
-        throw new Error("No pages rendered — document may be empty or unsupported.");
-      }
-
-      const html2canvas = (await import("html2canvas")).default;
-      const jsPDF       = (await import("jspdf")).default;
-      const pdf         = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-
-      for (let i = 0; i < pageSections.length; i++) {
-        setProgress(`Capturing page ${i + 1} of ${pageSections.length}…`);
-        const section  = pageSections[i];
-        const sectionW = section.offsetWidth  || 794;
-        const sectionH = section.offsetHeight || 1123;
-
-        const canvas = await html2canvas(section, {
-          scale:           2,
-          useCORS:         true,
-          allowTaint:      true,
-          backgroundColor: "#ffffff",
-          logging:         false,
-          width:           sectionW,
-          height:          sectionH,
-          windowWidth:     sectionW,
-          windowHeight:    sectionH,
-        });
-
-        const imgData = canvas.toDataURL("image/jpeg", 0.97);
-        const A4_W    = 210;
-        const A4_H    = 297;
-        const ratio   = Math.min(A4_W / sectionW, A4_H / sectionH);
-        const imgW    = sectionW * ratio;
-        const imgH    = sectionH * ratio;
-
-        if (i > 0) pdf.addPage("a4", "portrait");
-        pdf.addImage(imgData, "JPEG", (A4_W - imgW) / 2, (A4_H - imgH) / 2, imgW, imgH);
-      }
-
-      return pdf.output("blob");
-    } finally {
-      if (document.body.contains(wrapper)) document.body.removeChild(wrapper);
-    }
-  };
-
-  /* ── Main convert handler ────────────────────────────────────────────────── */
   const handleConvert = async () => {
     if (!file) return;
-    setConverting(true); setError(""); setProgress("Starting…");
+    if (!API) {
+      setError("Conversion API not configured. Set NEXT_PUBLIC_CONVERT_API_URL.");
+      return;
+    }
+    setConverting(true); setError(""); setProgress("Uploading…");
 
     try {
-      let blob: Blob;
+      const form = new FormData();
+      form.append("file", file);
 
-      if (API_URL) {
-        blob = await convertViaApi(file);
-      } else {
-        blob = await convertInBrowser(file);
+      setProgress("Converting with LibreOffice…");
+      const resp = await fetch(`${API}/convert/word-to-pdf`, { method: "POST", body: form });
+
+      if (!resp.ok) {
+        const j = await resp.json().catch(() => ({}));
+        throw new Error(j.error ?? `Server error ${resp.status}`);
       }
 
-      setProgress("Done!");
-      setPdfBlob(blob);
+      setProgress("Receiving PDF…");
+      setPdfBlob(await resp.blob());
       setConverted(true);
       setProgress("");
     } catch (err) {
@@ -173,7 +85,6 @@ export default function WordToPdfPage() {
     URL.revokeObjectURL(url);
   };
 
-  /* ─────────────────────────── UI ─────────────────────────── */
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -192,16 +103,9 @@ export default function WordToPdfPage() {
               <div>
                 <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white">Word to PDF</h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Exact colors, fonts &amp; tables — direct download, no print dialog
+                  Exact colors, fonts &amp; tables — powered by LibreOffice
                 </p>
               </div>
-              {API_URL && (
-                <span className="ml-auto flex items-center gap-1 text-xs font-semibold
-                                 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400
-                                 px-2.5 py-1 rounded-full">
-                  <Zap size={11} /> LibreOffice
-                </span>
-              )}
             </motion.div>
 
             {/* Steps */}
@@ -210,15 +114,15 @@ export default function WordToPdfPage() {
               {steps.map((s, i) => (
                 <div key={s.step} className={cn(
                   "flex items-start gap-3 p-4 rounded-xl border transition-colors",
-                  i === 0 && file      ? "border-blue-300 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-700" :
-                  i === 1 && converting? "border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700" :
-                  i === 2 && converted ? "border-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-700" :
+                  i === 0 && file       ? "border-blue-300 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-700" :
+                  i === 1 && converting ? "border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700" :
+                  i === 2 && converted  ? "border-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-700" :
                   "border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800"
                 )}>
                   <div className={cn(
                     "w-7 h-7 rounded-full text-white text-xs font-bold flex items-center justify-center shrink-0",
-                    i === 2 && converted ? "bg-emerald-500" :
-                    i === 1 && converting? "bg-amber-500" : "bg-blue-500"
+                    i === 2 && converted  ? "bg-emerald-500" :
+                    i === 1 && converting ? "bg-amber-500" : "bg-blue-500"
                   )}>{s.step}</div>
                   <div>
                     <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">{s.title}</p>
@@ -229,8 +133,7 @@ export default function WordToPdfPage() {
             </motion.div>
 
             {/* Drop zone */}
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}>
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
               <div
                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                 onDragLeave={() => setIsDragging(false)}
@@ -239,7 +142,7 @@ export default function WordToPdfPage() {
                   "relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed",
                   "transition-all duration-200 cursor-pointer min-h-52",
                   isDragging ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 scale-[1.01]" :
-                  file        ? "border-blue-400 bg-blue-50/50 dark:bg-blue-900/10 dark:border-blue-700" :
+                  file       ? "border-blue-400 bg-blue-50/50 dark:bg-blue-900/10 dark:border-blue-700" :
                   "border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-blue-300 hover:bg-blue-50/30"
                 )}>
                 <input type="file" accept=".doc,.docx" onChange={handleFileInput}
@@ -289,15 +192,15 @@ export default function WordToPdfPage() {
               </motion.div>
             )}
 
-            {/* Convert button + progress */}
+            {/* Convert button */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }} className="flex items-center gap-3">
               <button onClick={handleConvert} disabled={!file || converting || converted}
                 className={cn(
                   "flex items-center gap-2 font-semibold text-sm px-6 py-3 rounded-xl transition-all",
-                  !file     ? "bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed" :
-                  converting? "bg-blue-400 text-white cursor-wait" :
-                  converted ? "bg-emerald-500 text-white" :
+                  !file      ? "bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed" :
+                  converting ? "bg-blue-400 text-white cursor-wait" :
+                  converted  ? "bg-emerald-500 text-white" :
                   "bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-200 dark:shadow-blue-900/40"
                 )}>
                 {converting ? (
