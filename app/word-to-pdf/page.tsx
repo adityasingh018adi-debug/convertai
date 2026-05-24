@@ -3,19 +3,15 @@
 import { useState, useCallback } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
-import { FileText, CheckCircle, Download, ArrowRight, Upload, X, File } from "lucide-react";
+import { FileText, CheckCircle, ArrowRight, Upload, X, File, Printer, Info } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const steps = [
   { step: "1", title: "Upload Word File", desc: "Drop your .docx file below" },
-  { step: "2", title: "Processing", desc: "Preserves tables, bold & headings" },
-  { step: "3", title: "Download PDF", desc: "Proper A4 pages, no cuts" },
+  { step: "2", title: "Convert", desc: "Click convert to process" },
+  { step: "3", title: "Save as PDF", desc: "Print dialog → Save as PDF" },
 ];
-
-const CANVAS_SCALE = 2;
-const A4_W_MM = 210;
-const A4_H_MM = 297;
 
 export default function WordToPdfPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -23,28 +19,26 @@ export default function WordToPdfPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [converting, setConverting] = useState(false);
   const [converted, setConverted] = useState(false);
-  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [error, setError] = useState("");
 
-  const reset = () => { setFile(null); setConverted(false); setPdfBlob(null); setError(""); };
+  const reset = () => { setFile(null); setConverted(false); setError(""); };
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     const f = e.dataTransfer.files[0];
-    if (f) { setFile(f); setConverted(false); setPdfBlob(null); setError(""); }
+    if (f) { setFile(f); setConverted(false); setError(""); }
   }, []);
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
-    if (f) { setFile(f); setConverted(false); setPdfBlob(null); setError(""); }
+    if (f) { setFile(f); setConverted(false); setError(""); }
   };
 
   const handleConvert = async () => {
     if (!file) return;
     setConverting(true);
     setError("");
-    let container: HTMLDivElement | null = null;
     try {
       const arrayBuffer = await file.arrayBuffer();
       const mammothMod = await import("mammoth");
@@ -54,122 +48,86 @@ export default function WordToPdfPage() {
       const result = await (mammoth as any).convertToHtml({ arrayBuffer });
       const html: string = result.value || "<p>No content found.</p>";
 
-      // Build styled A4-width container
-      container = document.createElement("div");
-      container.style.cssText =
-        "position:fixed;top:-99999px;left:-99999px;" +
-        "width:794px;background:#fff;" +
-        "padding:60px 72px;" +
-        "font-family:'Times New Roman',Times,serif;" +
-        "font-size:11pt;line-height:1.65;color:#000;";
+      const docTitle = file.name.replace(/\.docx?$/i, "");
 
-      container.innerHTML = `<style>
-        *{box-sizing:border-box;}
-        h1{font-size:17pt;font-weight:bold;margin:14px 0 6px;}
-        h2{font-size:14pt;font-weight:bold;margin:12px 0 5px;}
-        h3{font-size:12pt;font-weight:bold;margin:10px 0 4px;}
-        p{margin:0 0 7px;}
-        table{border-collapse:collapse;width:100%;margin:10px 0;}
-        td,th{border:1px solid #444;padding:5px 8px;text-align:left;vertical-align:top;}
-        th{background:#f0f0f0;font-weight:bold;}
-        ul,ol{margin:6px 0 6px 22px;}
-        li{margin:2px 0;}
-        strong,b{font-weight:bold;}
-        em,i{font-style:italic;}
-        u{text-decoration:underline;}
-        hr{border:none;border-top:1px solid #ccc;margin:10px 0;}
-        img{max-width:100%;}
-      </style>${html}`;
+      const fullHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>${docTitle}</title>
+<style>
+  @page {
+    size: A4;
+    margin: 1.8cm 2cm;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 11pt;
+    line-height: 1.65;
+    color: #000;
+    background: #fff;
+  }
+  h1 { font-size: 18pt; font-weight: bold; margin: 14px 0 6px; page-break-after: avoid; }
+  h2 { font-size: 15pt; font-weight: bold; margin: 12px 0 5px; page-break-after: avoid; }
+  h3 { font-size: 13pt; font-weight: bold; margin: 10px 0 4px; page-break-after: avoid; }
+  h4 { font-size: 12pt; font-weight: bold; margin: 8px 0 3px; page-break-after: avoid; }
+  p  { margin: 0 0 6px; orphans: 3; widows: 3; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 8px 0;
+    page-break-inside: auto;
+  }
+  tr  { page-break-inside: avoid; page-break-after: auto; }
+  td, th {
+    border: 1px solid #555;
+    padding: 5px 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #f0f0f0; font-weight: bold; }
+  ul, ol { margin: 5px 0 5px 20px; }
+  li { margin: 2px 0; page-break-inside: avoid; }
+  img { max-width: 100%; height: auto; display: block; }
+  strong, b { font-weight: bold; }
+  em, i    { font-style: italic; }
+  u        { text-decoration: underline; }
+  hr { border: none; border-top: 1px solid #aaa; margin: 8px 0; }
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print { display: none; }
+  }
+</style>
+</head>
+<body>
+${html}
+<script>
+  window.onload = function() {
+    // Small delay so images load
+    setTimeout(function() { window.print(); }, 600);
+  };
+<\/script>
+</body>
+</html>`;
 
-      document.body.appendChild(container);
-
-      // Render full document to one tall canvas
-      const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(container, {
-        scale: CANVAS_SCALE,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-      });
-
-      // A4 page height in canvas pixels
-      const a4HeightPx = (A4_H_MM / A4_W_MM) * canvas.width;
-
-      // Collect element bottom-edges in canvas pixel coords (safe cut points)
-      const containerRect = container.getBoundingClientRect();
-      const blockSels = "p,h1,h2,h3,h4,h5,h6,tr,li,hr,img,blockquote";
-      const safeEdges: number[] = [0];
-
-      container.querySelectorAll(blockSels).forEach((el) => {
-        const r = el.getBoundingClientRect();
-        const topPx = (r.top - containerRect.top) * CANVAS_SCALE;
-        const botPx = (r.bottom - containerRect.top) * CANVAS_SCALE;
-        if (topPx > 0) safeEdges.push(topPx);  // before element
-        if (botPx > 0) safeEdges.push(botPx);  // after element
-      });
-      safeEdges.push(canvas.height);
-      safeEdges.sort((a, b) => a - b);
-
-      // Remove the DOM node now — we have the canvas
-      document.body.removeChild(container);
-      container = null;
-
-      const jsPDF = (await import("jspdf")).default;
-      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-
-      let pageStart = 0;
-      let pageIndex = 0;
-
-      while (pageStart < canvas.height) {
-        const targetEnd = pageStart + a4HeightPx;
-
-        // Find the best safe cut point: largest edge ≤ targetEnd and > pageStart
-        let bestCut = targetEnd;
-        for (const edge of safeEdges) {
-          if (edge > pageStart && edge <= targetEnd) {
-            bestCut = edge;
-          }
-        }
-        const pageEnd = Math.min(bestCut, canvas.height);
-        const sliceH = pageEnd - pageStart;
-
-        // Draw the slice onto a fresh canvas
-        const sliceCanvas = document.createElement("canvas");
-        sliceCanvas.width = canvas.width;
-        sliceCanvas.height = Math.max(1, Math.ceil(sliceH));
-        const ctx = sliceCanvas.getContext("2d")!;
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-        ctx.drawImage(canvas, 0, pageStart, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
-
-        const sliceHeightMm = (sliceH / canvas.width) * A4_W_MM;
-
-        if (pageIndex > 0) pdf.addPage();
-        pdf.addImage(sliceCanvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, A4_W_MM, sliceHeightMm);
-
-        pageStart = pageEnd;
-        pageIndex++;
+      const blob = new Blob([fullHtml], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, "_blank", "width=900,height=700");
+      if (!win) {
+        setError("Popup blocked. Please allow popups for this site and try again.");
+        URL.revokeObjectURL(url);
+        return;
       }
-
-      setPdfBlob(pdf.output("blob"));
+      // Clean up the blob URL after the window has loaded
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
       setConverted(true);
     } catch (err) {
       console.error(err);
-      if (container && document.body.contains(container)) document.body.removeChild(container);
       setError("Conversion failed. Please ensure the file is a valid .docx document.");
     } finally {
       setConverting(false);
     }
-  };
-
-  const handleDownload = () => {
-    if (!pdfBlob || !file) return;
-    const url = URL.createObjectURL(pdfBlob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = file.name.replace(/\.docx?$/i, ".pdf");
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   return (
@@ -187,8 +145,18 @@ export default function WordToPdfPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white">Word to PDF</h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Converts .docx to A4 PDF — tables, bold & headings preserved</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Perfect A4 PDF — all tables, images & formatting preserved</p>
               </div>
+            </motion.div>
+
+            {/* How it works banner */}
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+              className="flex items-start gap-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl px-4 py-3">
+              <Info size={16} className="text-blue-500 shrink-0 mt-0.5" />
+              <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                After clicking <strong>Convert</strong>, a print window opens automatically.
+                Set <strong>Destination → Save as PDF</strong> and click Save. This gives pixel-perfect A4 pages with no content cut.
+              </p>
             </motion.div>
 
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
@@ -213,6 +181,7 @@ export default function WordToPdfPage() {
               ))}
             </motion.div>
 
+            {/* Drop Zone */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
               <div
                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -264,40 +233,38 @@ export default function WordToPdfPage() {
 
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
               className="flex items-center gap-3">
-              <button onClick={handleConvert} disabled={!file || converting || converted}
+              <button onClick={handleConvert} disabled={!file || converting}
                 className={cn(
                   "flex items-center gap-2 font-semibold text-sm px-6 py-3 rounded-xl transition-all duration-200",
                   !file ? "bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed" :
                   converting ? "bg-blue-400 text-white cursor-wait" :
-                  converted ? "bg-emerald-500 text-white" :
                   "bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-200 dark:shadow-blue-900/40"
                 )}>
                 {converting ? (
-                  <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Converting...</>
-                ) : converted ? (
-                  <><CheckCircle size={16} />Converted!</>
+                  <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Processing...</>
                 ) : (
-                  <>Convert to PDF <ArrowRight size={16} /></>
+                  <><Printer size={16} />Convert & Open Print View<ArrowRight size={15} /></>
                 )}
               </button>
               {!file && <p className="text-xs text-slate-400">Upload a Word file first</p>}
             </motion.div>
 
-            {converted && pdfBlob && (
+            {converted && (
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-2xl p-5 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <CheckCircle size={24} className="text-emerald-500" />
-                  <div>
-                    <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300">Conversion Complete!</p>
-                    <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                      {file?.name.replace(/\.docx?$/i, ".pdf")} · Ready to download
-                    </p>
-                  </div>
+                className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-2xl p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <CheckCircle size={22} className="text-emerald-500 shrink-0" />
+                  <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300">Print window opened!</p>
                 </div>
-                <button onClick={handleDownload}
-                  className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-colors shadow-md shadow-emerald-200 dark:shadow-emerald-900/30">
-                  <Download size={14} /> Download PDF
+                <div className="bg-emerald-100 dark:bg-emerald-900/40 rounded-xl p-3 space-y-1.5 text-xs text-emerald-700 dark:text-emerald-300">
+                  <p className="font-semibold">To save as PDF:</p>
+                  <p>1. In the print dialog → <strong>Destination</strong> → select <strong>"Save as PDF"</strong></p>
+                  <p>2. Set <strong>Paper size: A4</strong></p>
+                  <p>3. Click <strong>Save</strong> and choose where to save</p>
+                </div>
+                <button onClick={handleConvert}
+                  className="mt-3 text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-semibold">
+                  Open print window again →
                 </button>
               </motion.div>
             )}
