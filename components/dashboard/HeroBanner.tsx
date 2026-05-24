@@ -20,41 +20,48 @@ const pills = [
 export function HeroBanner() {
   return (
     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white"
-      style={{ minHeight: 260 }}>
+      style={{ minHeight: 240 }}>
 
       {/* Ambient glows */}
       <div className="absolute -top-10 -right-10 w-80 h-80 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-10 left-1/4 w-64 h-64 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute top-0 left-0 w-40 h-40 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
 
-      {/* 3D Scene — right side */}
-      <div className="absolute inset-y-0 right-0 w-1/2 pointer-events-none">
+      {/* 3D Scene — right side, DESKTOP ONLY
+          Hidden on mobile because Three.js WebGL canvas bleeds outside CSS overflow bounds on Android */}
+      <div className="absolute inset-y-0 right-0 w-1/2 pointer-events-none hidden sm:block">
         <HeroScene />
       </div>
 
-      {/* Content — left side */}
-      <div className="relative z-10 p-6 sm:p-8 max-w-[56%]">
+      {/* Mobile-only: decorative gradient orbs instead of 3D */}
+      <div className="absolute inset-y-0 right-0 w-1/2 pointer-events-none sm:hidden flex items-center justify-center overflow-hidden">
+        <div className="w-32 h-32 bg-blue-500/20 rounded-full blur-2xl absolute top-4 right-4" />
+        <div className="w-20 h-20 bg-amber-400/15 rounded-full blur-xl absolute bottom-6 right-8" />
+        <div className="w-24 h-24 bg-purple-500/20 rounded-full blur-2xl absolute top-12 right-16" />
+      </div>
+
+      {/* Content — full width on mobile, 56% on desktop */}
+      <div className="relative z-10 p-5 sm:p-8 sm:max-w-[56%]">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
           <div className="inline-flex items-center gap-1.5 bg-blue-500/20 border border-blue-500/30
-                          rounded-full px-3 py-1 text-xs text-blue-300 mb-4">
+                          rounded-full px-3 py-1 text-xs text-blue-300 mb-3 sm:mb-4">
             <Zap size={11} className="text-amber-400" />
             New: AI-powered document intelligence
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight mb-2">
-            All-in-One Document &{" "}
-            <br className="hidden sm:block" />
+          <h1 className="text-xl sm:text-3xl font-extrabold leading-tight mb-2">
+            All-in-One Document &amp;{" "}
             Business Solution with{" "}
-            <span className="bg-amber-400 text-black px-2 py-0.5 rounded-md inline-block">
+            <span className="bg-amber-400 text-black px-2 py-0.5 rounded-md inline-block mt-1">
               powerful AI.
             </span>
           </h1>
 
-          <p className="text-slate-400 text-sm mb-6 max-w-sm">
+          <p className="text-slate-400 text-xs sm:text-sm mb-4 sm:mb-6 leading-relaxed">
             Convert documents, generate invoices, scan receipts, and manage your
             business ledger — all in one place.
           </p>

@@ -152,10 +152,10 @@ export default function Dashboard() {
               </div>
 
               {/* Row 2 */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {/* OCR */}
-                <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col">
-                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center mb-4">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-5 border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center mb-3 sm:mb-4">
                     <ScanText size={22} className="text-white" />
                   </div>
                   <h3 className="text-sm font-bold text-slate-800 dark:text-white mb-1">
@@ -164,25 +164,25 @@ export default function Dashboard() {
                   <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-4 flex-1">
                     Extract text from images and scanned PDFs using advanced AI OCR.
                   </p>
-                  <button className="w-full text-xs font-semibold text-cyan-600 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-700 rounded-lg py-2 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 transition-all">
+                  <a href="/ocr" className="w-full text-xs font-semibold text-cyan-600 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-700 rounded-xl py-3 active:bg-cyan-50 dark:active:bg-cyan-900/30 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 transition-all text-center min-h-[44px] flex items-center justify-center">
                     Open Scanner →
-                  </button>
+                  </a>
                 </div>
 
                 <DragDropZone />
 
                 {/* Khatabook */}
-                <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col">
-                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center mb-4">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-5 border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col sm:col-span-2 md:col-span-1">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center mb-3 sm:mb-4">
                     <BookOpen size={22} className="text-white" />
                   </div>
                   <h3 className="text-sm font-bold text-slate-800 dark:text-white mb-1">
                     Khatabook Ledger
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-3 flex-1">
-                    Manage customers, track credits & debits, and maintain your business ledger.
+                    Manage customers, track credits &amp; debits, and maintain your business ledger.
                   </p>
-                  <div className="flex items-center gap-2 mb-4">
+                  <div className="flex items-center gap-2 mb-3 sm:mb-4">
                     <div className="flex -space-x-2">
                       {khatabookCustomers.map((c) => (
                         <div
@@ -196,19 +196,19 @@ export default function Dashboard() {
                     </div>
                     <span className="text-xs text-slate-500">customers</span>
                   </div>
-                  <button className="w-full text-xs font-semibold text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-700 rounded-lg py-2 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-all">
+                  <a href="/ledger" className="w-full text-xs font-semibold text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-700 rounded-xl py-3 active:bg-violet-50 dark:active:bg-violet-900/30 hover:bg-violet-50 dark:hover:bg-violet-900/30 transition-all text-center min-h-[44px] flex items-center justify-center">
                     Open Ledger →
-                  </button>
+                  </a>
                 </div>
               </div>
 
               {/* Business Overview */}
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-base font-bold text-slate-800 dark:text-white">
+                <div className="flex items-center justify-between mb-4 gap-3">
+                  <h2 className="text-base font-bold text-slate-800 dark:text-white shrink-0">
                     Business Overview
                   </h2>
-                  <button className="flex items-center gap-1 text-xs font-medium text-slate-500 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                  <button className="flex items-center gap-1 text-xs font-medium text-slate-500 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 active:bg-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap min-h-[36px]">
                     This Month <ChevronDown size={13} />
                   </button>
                 </div>
