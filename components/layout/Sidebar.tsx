@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import {
   FileText, FileOutput, Receipt, Clipboard, ScanText,
   BookOpen, Clock, LayoutTemplate, Archive, ChevronRight,
-  Sparkles, Crown, Sun, Moon, X, Briefcase, ChevronsLeft,
+  Sparkles, Sun, Moon, X, Briefcase, ChevronsLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -172,23 +172,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         {/* ── Bottom ── */}
         <div className="px-3 pb-4 shrink-0 space-y-2">
-          {/* Upgrade to Pro */}
-          {!collapsed && (
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 to-blue-700 p-4">
-              <div className="absolute -top-5 -right-5 w-20 h-20 bg-white/10 rounded-full" />
-              <div className="flex items-center gap-2 mb-1">
-                <Crown size={15} className="text-amber-300 shrink-0" />
-                <span className="text-sm font-bold text-white">Upgrade to Pro</span>
-              </div>
-              <p className="text-[11px] text-blue-200 mb-3 leading-relaxed">
-                Unlock premium tools &amp; features
-              </p>
-              <button className="w-full flex items-center justify-center gap-1.5 bg-white text-violet-700 text-xs font-black py-2 rounded-xl hover:bg-blue-50 transition-colors shadow-lg">
-                <Sparkles size={11} /> Upgrade ✦
-              </button>
-            </div>
-          )}
-
           {/* Dark mode toggle */}
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
