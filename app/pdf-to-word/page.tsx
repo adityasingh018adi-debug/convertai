@@ -172,31 +172,31 @@ export default function PdfToWordPage() {
                       </button>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center gap-4 py-14 px-6 pointer-events-none">
+                    <div className="flex flex-col items-center gap-3 py-10 px-6 pointer-events-none">
                       {/* Animated upload area */}
                       <div className="relative">
-                        <motion.div animate={{ y: [-4, 4, -4] }} transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                          className="w-16 h-16 bg-gradient-to-br from-red-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl shadow-purple-200 dark:shadow-purple-900/40">
-                          <Upload size={28} className="text-white" />
+                        <motion.div animate={{ y: [-3, 3, -3] }} transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                          className="w-12 h-12 bg-gradient-to-br from-red-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-200 dark:shadow-purple-900/40">
+                          <Upload size={21} className="text-white" />
                         </motion.div>
                         {/* Floating badges */}
-                        <motion.div animate={{ y: [-6, 2, -6], rotate: [-5, 5, -5] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                          className="absolute -top-3 -left-10 bg-white dark:bg-slate-700 rounded-xl px-2.5 py-1 shadow-lg border border-slate-100 dark:border-slate-600 text-xs font-black text-red-600">PDF</motion.div>
-                        <motion.div animate={{ y: [2, -6, 2], rotate: [5, -5, 5] }} transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
-                          className="absolute -top-1 -right-12 bg-white dark:bg-slate-700 rounded-xl px-2 py-1 shadow-lg border border-slate-100 dark:border-slate-600 text-xs font-black text-purple-600">DOCX</motion.div>
+                        <motion.div animate={{ y: [-5, 2, -5], rotate: [-5, 5, -5] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                          className="absolute -top-2 -left-9 bg-white dark:bg-slate-700 rounded-lg px-2 py-0.5 shadow-lg border border-slate-100 dark:border-slate-600 text-xs font-black text-red-600">PDF</motion.div>
+                        <motion.div animate={{ y: [2, -5, 2], rotate: [5, -5, 5] }} transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+                          className="absolute -top-1 -right-11 bg-white dark:bg-slate-700 rounded-lg px-1.5 py-0.5 shadow-lg border border-slate-100 dark:border-slate-600 text-xs font-black text-purple-600">DOCX</motion.div>
                         {/* Sparkles */}
-                        {[[-28, -8], [28, 8], [-16, 28]].map(([x, y], i) => (
-                          <motion.div key={i} className="absolute w-1.5 h-1.5 bg-purple-400 rounded-full"
+                        {[[-22, -6], [22, 6], [-12, 22]].map(([x, y], i) => (
+                          <motion.div key={i} className="absolute w-1 h-1 bg-purple-400 rounded-full"
                             style={{ left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)` }}
                             animate={{ scale: [0, 1, 0], opacity: [0, 1, 0] }}
                             transition={{ duration: 2, delay: i * 0.4, repeat: Infinity }} />
                         ))}
                       </div>
-                      <div className="text-center space-y-2">
-                        <p className="text-lg font-bold text-slate-700 dark:text-slate-200">Drag &amp; drop your PDF here</p>
-                        <p className="text-sm text-slate-400">or</p>
-                        <div className="inline-flex items-center gap-2 bg-gradient-to-r from-red-500 to-purple-600 text-white text-sm font-semibold px-6 py-2.5 rounded-xl shadow-lg shadow-purple-200 dark:shadow-purple-900/30">
-                          <FileOutput size={15} /> Browse Files
+                      <div className="text-center space-y-1.5">
+                        <p className="text-base font-bold text-slate-700 dark:text-slate-200">Drag &amp; drop your PDF here</p>
+                        <p className="text-xs text-slate-400">or</p>
+                        <div className="inline-flex items-center gap-1.5 bg-gradient-to-r from-red-500 to-purple-600 text-white text-xs font-semibold px-5 py-2 rounded-xl shadow-lg shadow-purple-200 dark:shadow-purple-900/30">
+                          <FileOutput size={13} /> Browse Files
                         </div>
                       </div>
                       <p className="text-xs text-slate-400">Supports .pdf • Max file size 50 MB</p>
