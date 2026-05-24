@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import {
   FileText, FileOutput, Receipt, Clipboard, ScanText,
   BookOpen, Clock, LayoutTemplate, Archive, ChevronRight,
-  Sparkles, Sun, Moon, X, Briefcase, ChevronsLeft,
+  Sparkles, Sun, Moon, X, Briefcase,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -19,7 +19,7 @@ const navGroups = [
     section: "CONVERT & TOOLS",
     sectionIcon: Sparkles,
     items: [
-      { label: "Word to PDF",        href: "/word-to-pdf", gradient: "from-violet-500 to-blue-600",   icon: FileText  as LucideIcon, text: "W" },
+      { label: "Word to PDF",        href: "/word-to-pdf", gradient: "from-violet-500 to-blue-600",   icon: FileText   as LucideIcon, text: "W" },
       { label: "PDF to Word",        href: "/pdf-to-word", gradient: "from-red-500 to-rose-500",      icon: FileOutput as LucideIcon },
       { label: "AI Invoice Maker",   href: "/invoice",     gradient: "from-emerald-500 to-green-600", icon: Receipt    as LucideIcon },
       { label: "AI Challan Maker",   href: "/challan",     gradient: "from-orange-500 to-amber-500",  icon: Clipboard  as LucideIcon },
@@ -41,62 +41,44 @@ const navGroups = [
 interface SidebarProps { isOpen: boolean; onClose: () => void; }
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const pathname = usePathname();
+  const pathname  = usePathname();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
-
   useEffect(() => setMounted(true), []);
 
   return (
     <>
       {/* Mobile backdrop */}
       {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
-          onClick={onClose}
-        />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden" onClick={onClose} />
       )}
 
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 flex flex-col border-r border-white/5 transition-all duration-300",
+        "fixed inset-y-0 left-0 z-50 w-56 flex flex-col border-r border-white/5 transition-transform duration-300",
         "bg-[#0b0f1a]",
         "md:relative md:translate-x-0 md:z-auto",
-        isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-        collapsed ? "md:w-20" : "w-56"
+        isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
       )}>
 
         {/* ── Logo ── */}
         <div className="px-4 py-5 border-b border-white/5 shrink-0">
           <div className="flex items-center justify-between">
             <Link href="/" onClick={onClose} className="flex items-center gap-3 min-w-0">
-              {/* CA badge */}
               <div className="relative shrink-0">
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-lg shadow-violet-900/40">
                   <span className="text-white text-sm font-black">CA</span>
                 </div>
                 <Sparkles size={10} className="absolute -top-1 -right-1 text-amber-400" />
               </div>
-
-              {!collapsed && (
-                <div className="min-w-0">
-                  <span className="text-xl font-black bg-gradient-to-r from-violet-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                    ConvertAI
-                  </span>
-                  <p className="text-[11px] text-slate-500 leading-none mt-0.5 truncate">
-                    Smart Tools, Simple Solutions
-                  </p>
-                </div>
-              )}
+              <div className="min-w-0">
+                <span className="text-xl font-black bg-gradient-to-r from-violet-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                  ConvertAI
+                </span>
+                <p className="text-[11px] text-slate-500 leading-none mt-0.5 truncate">
+                  Smart Tools, Simple Solutions
+                </p>
+              </div>
             </Link>
-
-            {/* Collapse button (desktop) / Close (mobile) */}
-            <button
-              onClick={() => { onClose(); if (window.innerWidth >= 768) setCollapsed(!collapsed); }}
-              className="hidden md:flex items-center justify-center w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors shrink-0"
-            >
-              <ChevronsLeft size={15} className={cn("transition-transform duration-300", collapsed && "rotate-180")} />
-            </button>
             <button onClick={onClose} className="md:hidden text-slate-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5">
               <X size={16} />
             </button>
@@ -107,20 +89,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
           {navGroups.map((group) => (
             <div key={group.section}>
-              {/* Section header */}
-              {!collapsed && (
-                <div className="flex items-center gap-1.5 px-1 mb-3">
-                  <group.sectionIcon size={12} className="text-violet-400 shrink-0" />
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    {group.section}
-                  </p>
-                </div>
-              )}
+              <div className="flex items-center gap-1.5 px-1 mb-3">
+                <group.sectionIcon size={12} className="text-violet-400 shrink-0" />
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  {group.section}
+                </p>
+              </div>
 
-              <ul className="space-y-2">
+              <ul className="space-y-1.5">
                 {group.items.map((item) => {
                   const active = pathname === item.href;
-                  const Icon = item.icon;
+                  const Icon   = item.icon;
                   return (
                     <li key={item.href}>
                       <Link href={item.href} onClick={onClose}>
@@ -128,7 +107,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                           whileHover={{ scale: 1.01 }}
                           whileTap={{ scale: 0.99 }}
                           className={cn(
-                            "flex items-center gap-2.5 px-2.5 py-2 rounded-xl border transition-all duration-200 group",
+                            "flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl border transition-all duration-200 group",
                             active
                               ? "bg-gradient-to-r from-violet-600/25 to-blue-600/20 border-violet-500/40 shadow-lg shadow-violet-900/20"
                               : "bg-white/[0.03] border-white/[0.07] hover:bg-white/[0.07] hover:border-white/[0.12]"
@@ -136,30 +115,25 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                         >
                           {/* Icon square */}
                           <div className={cn(
-                            "flex items-center justify-center rounded-2xl shrink-0 bg-gradient-to-br shadow-md",
-                            item.gradient,
-                            collapsed ? "w-9 h-9" : "w-10 h-10"
+                            "w-9 h-9 flex items-center justify-center rounded-xl shrink-0 bg-gradient-to-br shadow-sm",
+                            item.gradient
                           )}>
                             {item.text
                               ? <span className="text-white font-black text-xs">{item.text}</span>
-                              : <Icon size={collapsed ? 16 : 18} className="text-white" />
+                              : <Icon size={17} className="text-white" />
                             }
                           </div>
 
-                          {!collapsed && (
-                            <>
-                              <span className={cn(
-                                "flex-1 text-sm font-semibold truncate",
-                                active ? "text-white" : "text-slate-300 group-hover:text-white"
-                              )}>
-                                {item.label}
-                              </span>
-                              <ChevronRight size={14} className={cn(
-                                "shrink-0 transition-colors",
-                                active ? "text-violet-400" : "text-slate-600 group-hover:text-slate-400"
-                              )} />
-                            </>
-                          )}
+                          <span className={cn(
+                            "flex-1 text-sm font-semibold truncate",
+                            active ? "text-white" : "text-slate-300 group-hover:text-white"
+                          )}>
+                            {item.label}
+                          </span>
+                          <ChevronRight size={13} className={cn(
+                            "shrink-0 transition-colors",
+                            active ? "text-violet-400" : "text-slate-600 group-hover:text-slate-400"
+                          )} />
                         </motion.div>
                       </Link>
                     </li>
@@ -171,36 +145,28 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         {/* ── Bottom ── */}
-        <div className="px-3 pb-4 shrink-0 space-y-2">
-          {/* Dark mode toggle */}
+        <div className="px-3 pb-4 shrink-0">
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className={cn(
-              "flex items-center w-full px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition-colors",
-              collapsed ? "justify-center" : "justify-between"
-            )}
+            className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
           >
             <div className="flex items-center gap-2">
               {mounted && theme === "dark"
                 ? <Moon size={14} className="text-blue-400" />
                 : <Sun size={14} className="text-amber-400" />}
-              {!collapsed && (
-                <span className="text-xs text-slate-400 font-medium">
-                  {mounted && theme === "dark" ? "Dark Mode" : "Light Mode"}
-                </span>
-              )}
+              <span className="text-xs text-slate-400 font-medium">
+                {mounted && theme === "dark" ? "Dark Mode" : "Light Mode"}
+              </span>
             </div>
-            {!collapsed && (
+            <div className={cn(
+              "w-9 h-5 rounded-full relative transition-colors duration-300",
+              mounted && theme === "dark" ? "bg-blue-600" : "bg-slate-600"
+            )}>
               <div className={cn(
-                "w-9 h-5 rounded-full relative transition-colors duration-300",
-                mounted && theme === "dark" ? "bg-blue-600" : "bg-slate-600"
-              )}>
-                <div className={cn(
-                  "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-300",
-                  mounted && theme === "dark" ? "translate-x-4" : "translate-x-0.5"
-                )} />
-              </div>
-            )}
+                "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-300",
+                mounted && theme === "dark" ? "translate-x-4" : "translate-x-0.5"
+              )} />
+            </div>
           </button>
         </div>
       </aside>

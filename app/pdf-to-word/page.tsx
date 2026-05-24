@@ -101,10 +101,6 @@ export default function PdfToWordPage() {
                   <h1 className="text-4xl font-black text-slate-800 dark:text-white leading-tight">
                     PDF <span className="text-purple-600">to Word</span>
                   </h1>
-                  <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm leading-relaxed">
-                    Convert your PDF files to editable Word documents in seconds<br />
-                    Powered by <span className="text-purple-600 font-semibold">LibreOffice</span> for maximum accuracy
-                  </p>
                 </div>
               </motion.div>
 

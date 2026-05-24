@@ -100,10 +100,6 @@ export default function WordToPdfPage() {
                   <h1 className="text-4xl font-black text-slate-800 dark:text-white leading-tight">
                     Word <span className="text-blue-600">to PDF</span>
                   </h1>
-                  <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm leading-relaxed">
-                    Convert your Word documents to PDF with perfect formatting<br />
-                    Powered by <span className="text-blue-600 font-semibold">LibreOffice</span> for 100% accuracy
-                  </p>
                 </div>
               </motion.div>
 
