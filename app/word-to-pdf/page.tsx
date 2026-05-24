@@ -13,6 +13,10 @@ const steps = [
   { step: "3", title: "Download PDF", desc: "Proper A4 pages, no cuts" },
 ];
 
+const CANVAS_SCALE = 2;
+const A4_W_MM = 210;
+const A4_H_MM = 297;
+
 export default function WordToPdfPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -27,8 +31,8 @@ export default function WordToPdfPage() {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    const dropped = e.dataTransfer.files[0];
-    if (dropped) { setFile(dropped); setConverted(false); setPdfBlob(null); setError(""); }
+    const f = e.dataTransfer.files[0];
+    if (f) { setFile(f); setConverted(false); setPdfBlob(null); setError(""); }
   }, []);
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,62 +54,105 @@ export default function WordToPdfPage() {
       const result = await (mammoth as any).convertToHtml({ arrayBuffer });
       const html: string = result.value || "<p>No content found.</p>";
 
+      // Build styled A4-width container
       container = document.createElement("div");
       container.style.cssText =
         "position:fixed;top:-99999px;left:-99999px;" +
         "width:794px;background:#fff;" +
         "padding:60px 72px;" +
-        "font-family:'Times New Roman',serif;" +
-        "font-size:11pt;line-height:1.6;color:#000;";
+        "font-family:'Times New Roman',Times,serif;" +
+        "font-size:11pt;line-height:1.65;color:#000;";
 
       container.innerHTML = `<style>
         *{box-sizing:border-box;}
-        h1{font-size:18pt;font-weight:bold;margin:14px 0 6px;page-break-after:avoid;}
-        h2{font-size:15pt;font-weight:bold;margin:12px 0 5px;page-break-after:avoid;}
-        h3{font-size:13pt;font-weight:bold;margin:10px 0 4px;page-break-after:avoid;}
-        p{margin:0 0 7px;page-break-inside:avoid;}
-        table{border-collapse:collapse;width:100%;margin:10px 0;page-break-inside:auto;}
-        tr{page-break-inside:avoid;page-break-after:auto;}
+        h1{font-size:17pt;font-weight:bold;margin:14px 0 6px;}
+        h2{font-size:14pt;font-weight:bold;margin:12px 0 5px;}
+        h3{font-size:12pt;font-weight:bold;margin:10px 0 4px;}
+        p{margin:0 0 7px;}
+        table{border-collapse:collapse;width:100%;margin:10px 0;}
         td,th{border:1px solid #444;padding:5px 8px;text-align:left;vertical-align:top;}
         th{background:#f0f0f0;font-weight:bold;}
         ul,ol{margin:6px 0 6px 22px;}
-        li{margin:2px 0;page-break-inside:avoid;}
+        li{margin:2px 0;}
         strong,b{font-weight:bold;}
         em,i{font-style:italic;}
         u{text-decoration:underline;}
         hr{border:none;border-top:1px solid #ccc;margin:10px 0;}
+        img{max-width:100%;}
       </style>${html}`;
 
       document.body.appendChild(container);
 
+      // Render full document to one tall canvas
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(container, {
+        scale: CANVAS_SCALE,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+
+      // A4 page height in canvas pixels
+      const a4HeightPx = (A4_H_MM / A4_W_MM) * canvas.width;
+
+      // Collect element bottom-edges in canvas pixel coords (safe cut points)
+      const containerRect = container.getBoundingClientRect();
+      const blockSels = "p,h1,h2,h3,h4,h5,h6,tr,li,hr,img,blockquote";
+      const safeEdges: number[] = [0];
+
+      container.querySelectorAll(blockSels).forEach((el) => {
+        const r = el.getBoundingClientRect();
+        const topPx = (r.top - containerRect.top) * CANVAS_SCALE;
+        const botPx = (r.bottom - containerRect.top) * CANVAS_SCALE;
+        if (topPx > 0) safeEdges.push(topPx);  // before element
+        if (botPx > 0) safeEdges.push(botPx);  // after element
+      });
+      safeEdges.push(canvas.height);
+      safeEdges.sort((a, b) => a - b);
+
+      // Remove the DOM node now — we have the canvas
+      document.body.removeChild(container);
+      container = null;
+
       const jsPDF = (await import("jspdf")).default;
       const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
 
-      await new Promise<void>((resolve, reject) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (pdf as any).html(container, {
-          callback: (doc: typeof pdf) => {
-            if (container && document.body.contains(container)) {
-              document.body.removeChild(container);
-            }
-            setPdfBlob(doc.output("blob"));
-            setConverted(true);
-            resolve();
-          },
-          x: 0,
-          y: 0,
-          width: 210,
-          windowWidth: 794,
-          autoPaging: "text",
-          margin: [14, 12, 14, 12],
-          html2canvas: {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: "#ffffff",
-            logging: false,
-          },
-        });
-      });
+      let pageStart = 0;
+      let pageIndex = 0;
+
+      while (pageStart < canvas.height) {
+        const targetEnd = pageStart + a4HeightPx;
+
+        // Find the best safe cut point: largest edge ≤ targetEnd and > pageStart
+        let bestCut = targetEnd;
+        for (const edge of safeEdges) {
+          if (edge > pageStart && edge <= targetEnd) {
+            bestCut = edge;
+          }
+        }
+        const pageEnd = Math.min(bestCut, canvas.height);
+        const sliceH = pageEnd - pageStart;
+
+        // Draw the slice onto a fresh canvas
+        const sliceCanvas = document.createElement("canvas");
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = Math.max(1, Math.ceil(sliceH));
+        const ctx = sliceCanvas.getContext("2d")!;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+        ctx.drawImage(canvas, 0, pageStart, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+
+        const sliceHeightMm = (sliceH / canvas.width) * A4_W_MM;
+
+        if (pageIndex > 0) pdf.addPage();
+        pdf.addImage(sliceCanvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, A4_W_MM, sliceHeightMm);
+
+        pageStart = pageEnd;
+        pageIndex++;
+      }
+
+      setPdfBlob(pdf.output("blob"));
+      setConverted(true);
     } catch (err) {
       console.error(err);
       if (container && document.body.contains(container)) document.body.removeChild(container);
