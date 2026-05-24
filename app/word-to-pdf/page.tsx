@@ -5,26 +5,28 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
 import {
   FileText, CheckCircle, Download, ArrowRight,
-  Upload, X, File, Loader2,
+  Upload, X, File, Loader2, Zap,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
+const API_URL = process.env.NEXT_PUBLIC_CONVERT_API_URL ?? "";
+
 const steps = [
   { step: "1", title: "Upload Word File", desc: "Drop your .docx file below" },
-  { step: "2", title: "Converting", desc: "Renders every page with exact colors" },
-  { step: "3", title: "Download PDF", desc: "Direct save — no print dialog" },
+  { step: "2", title: "Converting",       desc: "LibreOffice renders every detail" },
+  { step: "3", title: "Download PDF",     desc: "Direct save — exact colors & fonts" },
 ];
 
 export default function WordToPdfPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [file, setFile]       = useState<File | null>(null);
+  const [file, setFile]           = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [converting, setConverting] = useState(false);
-  const [progress, setProgress]     = useState("");
-  const [converted, setConverted]   = useState(false);
-  const [pdfBlob, setPdfBlob]       = useState<Blob | null>(null);
-  const [error, setError]           = useState("");
+  const [progress,  setProgress]   = useState("");
+  const [converted, setConverted]  = useState(false);
+  const [pdfBlob,   setPdfBlob]    = useState<Blob | null>(null);
+  const [error,     setError]      = useState("");
 
   const reset = () => {
     setFile(null); setConverted(false); setPdfBlob(null);
@@ -42,59 +44,67 @@ export default function WordToPdfPage() {
     if (f) { setFile(f); setConverted(false); setPdfBlob(null); setError(""); }
   };
 
-  const handleConvert = async () => {
-    if (!file) return;
-    setConverting(true); setError(""); setProgress("Reading document…");
-    let wrapper: HTMLDivElement | null = null;
+  /* ── LibreOffice API conversion ─────────────────────────────────────────── */
+  const convertViaApi = async (f: File): Promise<Blob> => {
+    setProgress("Uploading to conversion server…");
+    const form = new FormData();
+    form.append("file", f);
+
+    const resp = await fetch(`${API_URL}/convert/word-to-pdf`, {
+      method: "POST",
+      body: form,
+    });
+
+    if (!resp.ok) {
+      const json = await resp.json().catch(() => ({}));
+      throw new Error(json.error ?? `Server error ${resp.status}`);
+    }
+    setProgress("Receiving PDF…");
+    return resp.blob();
+  };
+
+  /* ── Browser-based fallback (docx-preview + html2canvas + jsPDF) ────────── */
+  const convertInBrowser = async (f: File): Promise<Blob> => {
+    const arrayBuffer = await f.arrayBuffer();
+
+    setProgress("Rendering document…");
+    const { renderAsync } = await import("docx-preview");
+
+    const wrapper = document.createElement("div");
+    wrapper.style.cssText =
+      "position:fixed;left:-9999px;top:0;" +
+      "width:794px;background:#fff;" +
+      "z-index:-1;pointer-events:none;";
+    document.body.appendChild(wrapper);
 
     try {
-      const arrayBuffer = await file.arrayBuffer();
-
-      /* ── 1. Render DOCX with docx-preview (preserves all colors/fonts/images) ── */
-      setProgress("Rendering pages…");
-      const { renderAsync } = await import("docx-preview");
-
-      wrapper = document.createElement("div");
-      // Position off-screen but still "painted" by the browser
-      wrapper.style.cssText =
-        "position:fixed;left:-9999px;top:0;" +
-        "width:794px;background:#fff;" +
-        "z-index:-1;pointer-events:none;";
-      document.body.appendChild(wrapper);
-
       await renderAsync(new Uint8Array(arrayBuffer), wrapper, undefined, {
-        className:        "docx",
-        inWrapper:        true,
-        ignoreWidth:      false,
-        ignoreHeight:     false,
-        ignoreFonts:      false,
-        breakPages:       true,
-        useBase64URL:     true,
-        renderHeaders:    true,
-        renderFooters:    true,
-        renderFootnotes:  true,
+        className:       "docx",
+        inWrapper:       true,
+        ignoreWidth:     false,
+        ignoreHeight:    false,
+        ignoreFonts:     false,
+        breakPages:      true,
+        useBase64URL:    true,
+        renderHeaders:   true,
+        renderFooters:   true,
+        renderFootnotes: true,
       });
 
-      /* ── 2. Find rendered page sections ── */
-      // docx-preview wraps every Word page in a <section> inside .docx-wrapper
       const pageSections = Array.from(
         wrapper.querySelectorAll<HTMLElement>(".docx-wrapper section")
       );
-
       if (pageSections.length === 0) {
-        throw new Error("No pages rendered — the document may be empty or unsupported.");
+        throw new Error("No pages rendered — document may be empty or unsupported.");
       }
 
-      /* ── 3. Capture each page with html2canvas → add to jsPDF ── */
       const html2canvas = (await import("html2canvas")).default;
-      const jsPDF = (await import("jspdf")).default;
-      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+      const jsPDF       = (await import("jspdf")).default;
+      const pdf         = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
 
       for (let i = 0; i < pageSections.length; i++) {
         setProgress(`Capturing page ${i + 1} of ${pageSections.length}…`);
-        const section = pageSections[i];
-
-        // Make the section render at consistent A4 width
+        const section  = pageSections[i];
         const sectionW = section.offsetWidth  || 794;
         const sectionH = section.offsetHeight || 1123;
 
@@ -110,29 +120,44 @@ export default function WordToPdfPage() {
           windowHeight:    sectionH,
         });
 
-        // Fit the captured image into an A4 page (210mm × 297mm)
-        const imgData   = canvas.toDataURL("image/jpeg", 0.97);
-        const A4_W      = 210;
-        const A4_H      = 297;
-        const ratio     = Math.min(A4_W / (sectionW), A4_H / (sectionH));
-        const imgW      = sectionW  * ratio;
-        const imgH      = sectionH  * ratio;
-        const offsetX   = (A4_W - imgW) / 2;
-        const offsetY   = (A4_H - imgH) / 2;
+        const imgData = canvas.toDataURL("image/jpeg", 0.97);
+        const A4_W    = 210;
+        const A4_H    = 297;
+        const ratio   = Math.min(A4_W / sectionW, A4_H / sectionH);
+        const imgW    = sectionW * ratio;
+        const imgH    = sectionH * ratio;
 
         if (i > 0) pdf.addPage("a4", "portrait");
-        pdf.addImage(imgData, "JPEG", offsetX, offsetY, imgW, imgH);
+        pdf.addImage(imgData, "JPEG", (A4_W - imgW) / 2, (A4_H - imgH) / 2, imgW, imgH);
       }
 
-      document.body.removeChild(wrapper); wrapper = null;
-      setProgress("Finalising PDF…");
-      setPdfBlob(pdf.output("blob"));
+      return pdf.output("blob");
+    } finally {
+      if (document.body.contains(wrapper)) document.body.removeChild(wrapper);
+    }
+  };
+
+  /* ── Main convert handler ────────────────────────────────────────────────── */
+  const handleConvert = async () => {
+    if (!file) return;
+    setConverting(true); setError(""); setProgress("Starting…");
+
+    try {
+      let blob: Blob;
+
+      if (API_URL) {
+        blob = await convertViaApi(file);
+      } else {
+        blob = await convertInBrowser(file);
+      }
+
+      setProgress("Done!");
+      setPdfBlob(blob);
       setConverted(true);
       setProgress("");
     } catch (err) {
       console.error(err);
-      if (wrapper && document.body.contains(wrapper)) document.body.removeChild(wrapper);
-      setError(err instanceof Error ? err.message : "Conversion failed. Please use a valid .docx file.");
+      setError(err instanceof Error ? err.message : "Conversion failed. Please try again.");
     } finally {
       setConverting(false);
     }
@@ -170,6 +195,13 @@ export default function WordToPdfPage() {
                   Exact colors, fonts &amp; tables — direct download, no print dialog
                 </p>
               </div>
+              {API_URL && (
+                <span className="ml-auto flex items-center gap-1 text-xs font-semibold
+                                 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400
+                                 px-2.5 py-1 rounded-full">
+                  <Zap size={11} /> LibreOffice
+                </span>
+              )}
             </motion.div>
 
             {/* Steps */}
