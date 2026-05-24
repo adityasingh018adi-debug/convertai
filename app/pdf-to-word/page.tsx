@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { Footer } from "@/components/layout/Footer";
 
 const API = process.env.NEXT_PUBLIC_CONVERT_API_URL ?? "";
 
@@ -264,6 +265,8 @@ export default function PdfToWordPage() {
                   </div>
                 ))}
               </motion.div>
+
+              <Footer />
 
             </div>
           </div>
