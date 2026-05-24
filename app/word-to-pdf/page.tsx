@@ -8,12 +8,8 @@ import {
   FileText, CheckCircle, Download, ArrowRight,
   Upload, X, File, Loader2,
 } from "lucide-react";
-import { motion } from "framer-motion";
-
-const ConvertAnimation = dynamic(
-  () => import("@/components/3d/ConvertAnimation").then((m) => m.ConvertAnimation),
-  { ssr: false }
-);
+import { motion, AnimatePresence } from "framer-motion";
+import { ConvertingOverlay } from "@/components/ui/ConvertingOverlay";
 import { cn } from "@/lib/utils";
 
 const API = process.env.NEXT_PUBLIC_CONVERT_API_URL ?? "";
@@ -93,6 +89,19 @@ export default function WordToPdfPage() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
+      {/* Full-screen converting overlay */}
+      <AnimatePresence>
+        {converting && (
+          <ConvertingOverlay
+            progress={progress}
+            fromColor="#3b82f6"
+            toColor="#ef4444"
+            fromLabel="DOCX"
+            toLabel="PDF"
+          />
+        )}
+      </AnimatePresence>
+
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <TopNav onMenuClick={() => setSidebarOpen(true)} />
@@ -195,14 +204,6 @@ export default function WordToPdfPage() {
                 className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800
                            rounded-xl px-4 py-3 text-xs text-red-600 dark:text-red-400">
                 {error}
-              </motion.div>
-            )}
-
-            {/* 3D converting animation */}
-            {converting && (
-              <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                className="w-full h-48 rounded-2xl overflow-hidden bg-slate-900/60 dark:bg-slate-900/80 border border-blue-500/20">
-                <ConvertAnimation fromColor="#3b82f6" toColor="#ef4444" />
               </motion.div>
             )}
 
