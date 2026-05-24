@@ -63,7 +63,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         "bg-[#0b0f1a]",
         "md:relative md:translate-x-0 md:z-auto",
         isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-        collapsed ? "md:w-20" : "w-64"
+        collapsed ? "md:w-20" : "w-56"
       )}>
 
         {/* ── Logo ── */}
@@ -128,7 +128,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                           whileHover={{ scale: 1.01 }}
                           whileTap={{ scale: 0.99 }}
                           className={cn(
-                            "flex items-center gap-3 px-3 py-3 rounded-2xl border transition-all duration-200 group",
+                            "flex items-center gap-2.5 px-2.5 py-2 rounded-xl border transition-all duration-200 group",
                             active
                               ? "bg-gradient-to-r from-violet-600/25 to-blue-600/20 border-violet-500/40 shadow-lg shadow-violet-900/20"
                               : "bg-white/[0.03] border-white/[0.07] hover:bg-white/[0.07] hover:border-white/[0.12]"
@@ -138,11 +138,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                           <div className={cn(
                             "flex items-center justify-center rounded-2xl shrink-0 bg-gradient-to-br shadow-md",
                             item.gradient,
-                            collapsed ? "w-10 h-10" : "w-12 h-12"
+                            collapsed ? "w-9 h-9" : "w-10 h-10"
                           )}>
                             {item.text
-                              ? <span className="text-white font-black text-sm">{item.text}</span>
-                              : <Icon size={collapsed ? 18 : 22} className="text-white" />
+                              ? <span className="text-white font-black text-xs">{item.text}</span>
+                              : <Icon size={collapsed ? 16 : 18} className="text-white" />
                             }
                           </div>
 
