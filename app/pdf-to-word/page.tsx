@@ -22,6 +22,8 @@ export default function PdfToWordPage() {
   const [docxBlob, setDocxBlob] = useState<Blob | null>(null);
   const [error, setError] = useState("");
 
+  const reset = () => { setFile(null); setConverted(false); setDocxBlob(null); setError(""); };
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
@@ -41,68 +43,61 @@ export default function PdfToWordPage() {
     try {
       const arrayBuffer = await file.arrayBuffer();
 
-      // Load PDF.js
-      const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs" as string);
+      // pdfjs-dist v5 — use legacy build for broader browser compat
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (pdfjsLib as any).GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+      const pdfjsLib: any = await import("pdfjs-dist/legacy/build/pdf.mjs");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pdfDoc = await (pdfjsLib as any).getDocument({ data: arrayBuffer }).promise;
+      const pdfDoc = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
       const numPages: number = pdfDoc.numPages;
 
-      const paragraphsData: { text: string; bold: boolean; size: number }[] = [];
+      interface Block { text: string; fontSize: number; bold: boolean }
+      const blocks: Block[] = [];
 
-      for (let i = 1; i <= numPages; i++) {
-        const page = await pdfDoc.getPage(i);
+      for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+        const page = await pdfDoc.getPage(pageNum);
         const content = await page.getTextContent();
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let lastY: number | null = null;
+        const items: any[] = content.items;
         let lineText = "";
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let lineHeight = 12;
+        let lineY: number | null = null;
+        let lineSize = 12;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        for (const item of content.items as any[]) {
-          if (!item.str) continue;
-          const y = item.transform?.[5] ?? 0;
-          const h = item.height ?? 12;
+        for (const item of items) {
+          if (!("str" in item)) continue;
+          const str: string = item.str ?? "";
+          const y: number = item.transform?.[5] ?? 0;
+          const fontSize: number = item.height ?? 12;
 
-          if (lastY !== null && Math.abs(y - lastY) > 2) {
-            if (lineText.trim()) {
-              paragraphsData.push({ text: lineText.trim(), bold: lineHeight > 14, size: Math.round(lineHeight) });
-            }
-            lineText = item.str;
-            lineHeight = h;
+          if (lineY !== null && Math.abs(y - lineY) > 2) {
+            if (lineText.trim()) blocks.push({ text: lineText.trim(), fontSize: lineSize, bold: lineSize > 13 });
+            lineText = str;
+            lineSize = fontSize;
           } else {
-            lineText += item.str;
-            lineHeight = Math.max(lineHeight, h);
+            lineText += str;
+            lineSize = Math.max(lineSize, fontSize);
           }
-          lastY = y;
+          lineY = y;
         }
-        if (lineText.trim()) {
-          paragraphsData.push({ text: lineText.trim(), bold: lineHeight > 14, size: Math.round(lineHeight) });
-        }
-
-        // Page break between pages
-        if (i < numPages) {
-          paragraphsData.push({ text: "", bold: false, size: 12 });
-        }
+        if (lineText.trim()) blocks.push({ text: lineText.trim(), fontSize: lineSize, bold: lineSize > 13 });
+        if (pageNum < numPages) blocks.push({ text: "", fontSize: 12, bold: false }); // page break gap
       }
 
       // Build .docx
       const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import("docx");
 
-      const docChildren = paragraphsData.map(({ text, bold, size }) => {
+      const children = blocks.map(({ text, fontSize, bold }) => {
         if (!text) return new Paragraph({ children: [] });
-        const isHeading = bold && size >= 16;
+        const isH1 = fontSize >= 20;
+        const isH2 = fontSize >= 16 && !isH1;
         return new Paragraph({
-          heading: isHeading ? HeadingLevel.HEADING_2 : undefined,
+          heading: isH1 ? HeadingLevel.HEADING_1 : isH2 ? HeadingLevel.HEADING_2 : undefined,
           children: [
             new TextRun({
               text,
-              bold: bold && !isHeading,
-              size: size * 2,
+              bold: bold && !isH1 && !isH2,
+              size: Math.round(fontSize) * 2,
               font: "Calibri",
             }),
           ],
@@ -110,18 +105,11 @@ export default function PdfToWordPage() {
       });
 
       const doc = new Document({
-        styles: {
-          default: {
-            document: {
-              run: { font: "Calibri", size: 24 },
-            },
-          },
-        },
-        sections: [{ properties: {}, children: docChildren }],
+        styles: { default: { document: { run: { font: "Calibri", size: 24 } } } },
+        sections: [{ properties: {}, children }],
       });
 
-      const blob = await Packer.toBlob(doc);
-      setDocxBlob(blob);
+      setDocxBlob(await Packer.toBlob(doc));
       setConverted(true);
     } catch (err) {
       console.error(err);
@@ -192,8 +180,7 @@ export default function PdfToWordPage() {
                   isDragging ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20 scale-[1.01]" :
                   file ? "border-purple-400 bg-purple-50/50 dark:bg-purple-900/10 dark:border-purple-700" :
                   "border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-300 hover:bg-purple-50/30"
-                )}
-              >
+                )}>
                 <input type="file" accept=".pdf" onChange={handleFileInput}
                   className="absolute inset-0 opacity-0 cursor-pointer" />
                 {file ? (
@@ -205,7 +192,7 @@ export default function PdfToWordPage() {
                       <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{file.name}</p>
                       <p className="text-xs text-slate-400 mt-0.5">{(file.size / 1024).toFixed(1)} KB · PDF Document</p>
                     </div>
-                    <button onClick={(e) => { e.stopPropagation(); setFile(null); setConverted(false); setDocxBlob(null); setError(""); }}
+                    <button onClick={(e) => { e.stopPropagation(); reset(); }}
                       className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 mt-1">
                       <X size={12} /> Remove file
                     </button>
