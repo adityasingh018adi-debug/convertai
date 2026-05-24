@@ -88,21 +88,21 @@ export default function WordToPdfPage() {
         <TopNav onMenuClick={() => setSidebarOpen(true)} />
         <main className="flex-1 overflow-y-auto">
           {/* Page background */}
-          <div className="min-h-full bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-4 sm:p-8">
-            <div className="max-w-2xl mx-auto space-y-8">
+          <div className="min-h-full bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-4 sm:p-6">
+            <div className="max-w-2xl mx-auto space-y-5">
 
               {/* ── Header ── */}
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex items-start gap-5">
-                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-xl shadow-blue-200 dark:shadow-blue-900/40 shrink-0">
-                  <FileText size={36} className="text-white" />
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-200 dark:shadow-blue-900/40 shrink-0">
+                  <FileText size={26} className="text-white" />
                 </div>
                 <div>
-                  <h1 className="text-4xl font-black text-slate-800 dark:text-white leading-tight">
+                  <h1 className="text-2xl font-black text-slate-800 dark:text-white leading-tight">
                     Word <span className="text-blue-600">to PDF</span>
                   </h1>
-                  <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm leading-relaxed">
-                    Convert your Word documents to PDF with perfect formatting<br />
-                    Powered by <span className="text-blue-600 font-semibold">LibreOffice</span> for 100% accuracy
+                  <p className="text-slate-500 dark:text-slate-400 mt-0.5 text-xs leading-relaxed">
+                    Convert Word documents to PDF with perfect formatting ·{" "}
+                    Powered by <span className="text-blue-600 font-semibold">LibreOffice</span>
                   </p>
                 </div>
               </motion.div>
@@ -114,21 +114,21 @@ export default function WordToPdfPage() {
                   <div key={s.n} className="flex flex-col items-center text-center relative">
                     {/* Connector line */}
                     {i < steps.length - 1 && (
-                      <div className="absolute top-6 left-1/2 w-full border-t-2 border-dashed border-blue-200 dark:border-blue-900 z-0" />
+                      <div className="absolute top-5 left-1/2 w-full border-t-2 border-dashed border-blue-200 dark:border-blue-900 z-0" />
                     )}
                     <div className={cn(
-                      "relative z-10 w-12 h-12 rounded-2xl flex items-center justify-center mb-3 transition-all",
+                      "relative z-10 w-10 h-10 rounded-xl flex items-center justify-center mb-2 transition-all",
                       i === 0 && file       ? "bg-blue-600 shadow-lg shadow-blue-200 dark:shadow-blue-900/50"   :
                       i === 1 && converting ? "bg-amber-500 shadow-lg shadow-amber-200 dark:shadow-amber-900/50" :
                       i === 2 && converted  ? "bg-emerald-500 shadow-lg shadow-emerald-200"  :
                       "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm"
                     )}>
-                      <s.icon size={20} className={cn(
+                      <s.icon size={16} className={cn(
                         (i === 0 && file) || (i === 1 && converting) || (i === 2 && converted)
                           ? "text-white" : "text-slate-400"
                       )} />
                       <span className={cn(
-                        "absolute -top-2 -right-2 w-5 h-5 rounded-full text-xs font-black flex items-center justify-center",
+                        "absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[10px] font-black flex items-center justify-center",
                         i === 0 && file       ? "bg-blue-700 text-white"   :
                         i === 1 && converting ? "bg-amber-600 text-white"  :
                         i === 2 && converted  ? "bg-emerald-600 text-white":
@@ -157,45 +157,45 @@ export default function WordToPdfPage() {
                     className="absolute inset-0 opacity-0 cursor-pointer z-10" />
 
                   {file ? (
-                    <div className="flex flex-col items-center gap-4 py-10 px-6">
-                      <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/40 rounded-2xl flex items-center justify-center">
-                        <FileText size={32} className="text-blue-600" />
+                    <div className="flex flex-col items-center gap-3 py-7 px-6">
+                      <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/40 rounded-xl flex items-center justify-center">
+                        <FileText size={24} className="text-blue-600" />
                       </div>
                       <div className="text-center">
-                        <p className="font-bold text-slate-800 dark:text-slate-100">{file.name}</p>
-                        <p className="text-sm text-slate-400 mt-1">{(file.size / 1024).toFixed(1)} KB · Word Document</p>
+                        <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">{file.name}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{(file.size / 1024).toFixed(1)} KB · Word Document</p>
                       </div>
                       <button onClick={(e) => { e.stopPropagation(); reset(); }}
-                        className="relative z-20 flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 font-medium">
-                        <X size={14} /> Remove file
+                        className="relative z-20 flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700 font-medium">
+                        <X size={12} /> Remove file
                       </button>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center gap-4 py-14 px-6 pointer-events-none">
+                    <div className="flex flex-col items-center gap-3 py-9 px-6 pointer-events-none">
                       {/* Animated upload area */}
                       <div className="relative">
-                        <motion.div animate={{ y: [-4, 4, -4] }} transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                          className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-200 dark:shadow-blue-900/40">
-                          <Upload size={28} className="text-white" />
+                        <motion.div animate={{ y: [-3, 3, -3] }} transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                          className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200 dark:shadow-blue-900/40">
+                          <Upload size={22} className="text-white" />
                         </motion.div>
                         {/* Floating badges */}
-                        <motion.div animate={{ y: [-6, 2, -6], rotate: [-5, 5, -5] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                          className="absolute -top-3 -left-8 bg-white dark:bg-slate-700 rounded-xl px-2.5 py-1 shadow-lg border border-slate-100 dark:border-slate-600 text-xs font-black text-blue-600">W</motion.div>
-                        <motion.div animate={{ y: [2, -6, 2], rotate: [5, -5, 5] }} transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
-                          className="absolute -top-1 -right-10 bg-white dark:bg-slate-700 rounded-xl px-2 py-1 shadow-lg border border-slate-100 dark:border-slate-600 text-xs font-black text-slate-600">DOC</motion.div>
+                        <motion.div animate={{ y: [-5, 2, -5], rotate: [-5, 5, -5] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                          className="absolute -top-2 -left-7 bg-white dark:bg-slate-700 rounded-lg px-2 py-0.5 shadow-lg border border-slate-100 dark:border-slate-600 text-xs font-black text-blue-600">W</motion.div>
+                        <motion.div animate={{ y: [2, -5, 2], rotate: [5, -5, 5] }} transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+                          className="absolute -top-1 -right-9 bg-white dark:bg-slate-700 rounded-lg px-1.5 py-0.5 shadow-lg border border-slate-100 dark:border-slate-600 text-xs font-black text-slate-600">DOC</motion.div>
                         {/* Sparkles */}
-                        {[[-28,-8], [28, 8], [-16, 28]].map(([x, y], i) => (
-                          <motion.div key={i} className="absolute w-1.5 h-1.5 bg-blue-400 rounded-full"
+                        {[[-24,-6], [24, 6], [-14, 24]].map(([x, y], i) => (
+                          <motion.div key={i} className="absolute w-1 h-1 bg-blue-400 rounded-full"
                             style={{ left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)` }}
                             animate={{ scale: [0, 1, 0], opacity: [0, 1, 0] }}
                             transition={{ duration: 2, delay: i * 0.4, repeat: Infinity }} />
                         ))}
                       </div>
-                      <div className="text-center space-y-2">
-                        <p className="text-lg font-bold text-slate-700 dark:text-slate-200">Drag &amp; drop your Word file here</p>
-                        <p className="text-sm text-slate-400">or</p>
-                        <div className="inline-flex items-center gap-2 bg-gradient-to-r from-violet-600 to-blue-600 text-white text-sm font-semibold px-6 py-2.5 rounded-xl shadow-lg shadow-violet-200 dark:shadow-violet-900/30">
-                          <FileText size={15} /> Browse Files
+                      <div className="text-center space-y-1.5">
+                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Drag &amp; drop your Word file here</p>
+                        <p className="text-xs text-slate-400">or</p>
+                        <div className="inline-flex items-center gap-1.5 bg-gradient-to-r from-violet-600 to-blue-600 text-white text-xs font-semibold px-5 py-2 rounded-xl shadow-lg shadow-violet-200 dark:shadow-violet-900/30">
+                          <FileText size={13} /> Browse Files
                         </div>
                       </div>
                       <p className="text-xs text-slate-400">Supports .doc, .docx • Max file size 50 MB</p>
@@ -217,7 +217,7 @@ export default function WordToPdfPage() {
                 {!converted ? (
                   <button onClick={handleConvert} disabled={!file || converting}
                     className={cn(
-                      "w-full flex items-center justify-center gap-3 py-4 rounded-2xl text-base font-bold transition-all shadow-xl",
+                      "w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all shadow-lg",
                       !file      ? "bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed shadow-none" :
                       converting ? "bg-gradient-to-r from-violet-500 to-blue-500 text-white cursor-wait opacity-80" :
                       "bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 text-white shadow-violet-200 dark:shadow-violet-900/40"
@@ -254,12 +254,12 @@ export default function WordToPdfPage() {
 
               {/* ── Feature Badges ── */}
               <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-                className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {features.map((f) => (
-                  <div key={f.label} className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700 shadow-sm text-center">
-                    <f.icon size={20} className={cn("mx-auto mb-2", f.color)} />
+                  <div key={f.label} className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700 shadow-sm text-center">
+                    <f.icon size={16} className={cn("mx-auto mb-1.5", f.color)} />
                     <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{f.label}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{f.desc}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{f.desc}</p>
                   </div>
                 ))}
               </motion.div>
