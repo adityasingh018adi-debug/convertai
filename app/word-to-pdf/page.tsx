@@ -91,50 +91,54 @@ export default function WordToPdfPage() {
           <div className="min-h-full bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-4 sm:p-8">
             <div className="max-w-2xl mx-auto space-y-8">
 
-              {/* ── Header ── */}
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex items-start gap-5">
-                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-xl shadow-blue-200 dark:shadow-blue-900/40 shrink-0">
-                  <FileText size={36} className="text-white" />
-                </div>
-                <div>
-                  <h1 className="text-4xl font-black text-slate-800 dark:text-white leading-tight">
+              {/* ── Header + Steps combined row ── */}
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-6">
+
+                {/* Icon + Title */}
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-200 dark:shadow-blue-900/40">
+                    <FileText size={26} className="text-white" />
+                  </div>
+                  <h1 className="text-2xl font-black text-slate-800 dark:text-white leading-tight whitespace-nowrap">
                     Word <span className="text-blue-600">to PDF</span>
                   </h1>
                 </div>
-              </motion.div>
 
-              {/* ── Steps ── */}
-              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                className="grid grid-cols-3 gap-0 relative">
-                {steps.map((s, i) => (
-                  <div key={s.n} className="flex flex-col items-center text-center relative">
-                    {/* Connector line */}
-                    {i < steps.length - 1 && (
-                      <div className="absolute top-6 left-1/2 w-full border-t-2 border-dashed border-blue-200 dark:border-blue-900 z-0" />
-                    )}
-                    <div className={cn(
-                      "relative z-10 w-12 h-12 rounded-2xl flex items-center justify-center mb-3 transition-all",
-                      i === 0 && file       ? "bg-blue-600 shadow-lg shadow-blue-200 dark:shadow-blue-900/50"   :
-                      i === 1 && converting ? "bg-amber-500 shadow-lg shadow-amber-200 dark:shadow-amber-900/50" :
-                      i === 2 && converted  ? "bg-emerald-500 shadow-lg shadow-emerald-200"  :
-                      "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm"
-                    )}>
-                      <s.icon size={20} className={cn(
-                        (i === 0 && file) || (i === 1 && converting) || (i === 2 && converted)
-                          ? "text-white" : "text-slate-400"
-                      )} />
-                      <span className={cn(
-                        "absolute -top-2 -right-2 w-5 h-5 rounded-full text-xs font-black flex items-center justify-center",
-                        i === 0 && file       ? "bg-blue-700 text-white"   :
-                        i === 1 && converting ? "bg-amber-600 text-white"  :
-                        i === 2 && converted  ? "bg-emerald-600 text-white":
-                        "bg-blue-600 text-white"
-                      )}>{s.n}</span>
+                {/* Divider */}
+                <div className="w-px h-10 bg-slate-200 dark:bg-slate-700 shrink-0" />
+
+                {/* Steps */}
+                <div className="flex items-start gap-0 flex-1 relative">
+                  {steps.map((s, i) => (
+                    <div key={s.n} className="flex flex-col items-center text-center flex-1 relative">
+                      {i < steps.length - 1 && (
+                        <div className="absolute top-5 left-1/2 w-full border-t-2 border-dashed border-blue-200 dark:border-blue-800 z-0" />
+                      )}
+                      <div className={cn(
+                        "relative z-10 w-10 h-10 rounded-xl flex items-center justify-center mb-2 transition-all",
+                        i === 0 && file       ? "bg-blue-600 shadow-md shadow-blue-200 dark:shadow-blue-900/50"    :
+                        i === 1 && converting ? "bg-amber-500 shadow-md shadow-amber-200 dark:shadow-amber-900/50" :
+                        i === 2 && converted  ? "bg-emerald-500 shadow-md shadow-emerald-200"                      :
+                        "bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                      )}>
+                        <s.icon size={16} className={cn(
+                          (i === 0 && file) || (i === 1 && converting) || (i === 2 && converted)
+                            ? "text-white" : "text-slate-400"
+                        )} />
+                        <span className={cn(
+                          "absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[10px] font-black flex items-center justify-center",
+                          i === 0 && file       ? "bg-blue-700 text-white"    :
+                          i === 1 && converting ? "bg-amber-600 text-white"   :
+                          i === 2 && converted  ? "bg-emerald-600 text-white" :
+                          "bg-blue-600 text-white"
+                        )}>{s.n}</span>
+                      </div>
+                      <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200 leading-tight">{s.title}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5 px-1 leading-tight">{s.desc}</p>
                     </div>
-                    <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{s.title}</p>
-                    <p className="text-xs text-slate-400 mt-0.5 px-2">{s.desc}</p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </motion.div>
 
               {/* ── Drop Zone ── */}
