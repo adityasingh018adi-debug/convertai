@@ -60,7 +60,13 @@ export default function WordToPdfPage() {
       const form = new FormData();
       form.append("file", file);
       setProgress("Converting with LibreOffice…");
-      const resp = await fetch(`${API}/convert/word-to-pdf`, { method: "POST", body: form });
+      const resp = await fetch(`${API}/convert/word-to-pdf`, {
+        method: "POST",
+        body: form,
+        headers: process.env.NEXT_PUBLIC_CONVERT_API_KEY
+          ? { "x-api-key": process.env.NEXT_PUBLIC_CONVERT_API_KEY }
+          : undefined,
+      });
       if (!resp.ok) { const j = await resp.json().catch(() => ({})); throw new Error(j.error ?? `Server error ${resp.status}`); }
       setProgress("Receiving PDF…");
       setPdfBlob(await resp.blob());

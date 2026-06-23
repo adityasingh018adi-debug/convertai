@@ -12,9 +12,35 @@ const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB
 });
 
-app.use(cors({ origin: "*", methods: ["GET", "POST", "OPTIONS"] }));
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "https://doclifyai.com,https://www.doclifyai.com,https://doclifyai.in,https://www.doclifyai.in")
+  .split(",")
+  .map((o) => o.trim());
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+      callback(new Error("Not allowed by CORS"));
+    },
+    methods: ["GET", "POST", "OPTIONS"],
+  })
+);
+
+const API_KEY = process.env.CONVERT_API_KEY;
+function requireApiKey(req, res, next) {
+  if (!API_KEY) return next(); // no key configured -> auth disabled (dev mode)
+  if (req.get("x-api-key") !== API_KEY) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  next();
+}
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
+
+function sanitizeFilename(name) {
+  const base = path.basename(name).replace(/[^A-Za-z0-9._-]/g, "_");
+  return base || "file";
+}
 
 function libreOffice(args) {
   return new Promise((resolve, reject) => {
@@ -26,8 +52,12 @@ function libreOffice(args) {
 }
 
 async function convertFile(inputBuf, originalName, targetExt, extraArgs = []) {
-  const tmpDir    = fs.mkdtempSync(path.join(os.tmpdir(), "conv-"));
-  const inputPath = path.join(tmpDir, originalName);
+  const tmpDir      = fs.mkdtempSync(path.join(os.tmpdir(), "conv-"));
+  const safeName    = sanitizeFilename(originalName);
+  const inputPath   = path.join(tmpDir, safeName);
+  if (path.dirname(inputPath) !== tmpDir) {
+    throw new Error("Invalid filename.");
+  }
   try {
     fs.writeFileSync(inputPath, inputBuf);
 
@@ -40,7 +70,7 @@ async function convertFile(inputBuf, originalName, targetExt, extraArgs = []) {
       inputPath,
     ]);
 
-    const base    = path.basename(originalName, path.extname(originalName));
+    const base    = path.basename(safeName, path.extname(safeName));
     const outPath = path.join(tmpDir, `${base}.${targetExt.split(":")[0]}`);
 
     if (!fs.existsSync(outPath)) {
@@ -60,7 +90,7 @@ app.get("/health", (_req, res) => res.json({ ok: true, service: "convertai-api" 
  * POST /convert/word-to-pdf
  * field "file" = .doc or .docx  →  returns application/pdf
  */
-app.post("/convert/word-to-pdf", upload.single("file"), async (req, res) => {
+app.post("/convert/word-to-pdf", requireApiKey, upload.single("file"), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No file uploaded." });
 
   const ext = path.extname(req.file.originalname).toLowerCase();
@@ -83,7 +113,7 @@ app.post("/convert/word-to-pdf", upload.single("file"), async (req, res) => {
  * POST /convert/pdf-to-word
  * field "file" = .pdf  →  returns application/vnd.openxmlformats-officedocument.wordprocessingml.document
  */
-app.post("/convert/pdf-to-word", upload.single("file"), async (req, res) => {
+app.post("/convert/pdf-to-word", requireApiKey, upload.single("file"), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No file uploaded." });
 
   const ext = path.extname(req.file.originalname).toLowerCase();
