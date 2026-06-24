@@ -24,7 +24,7 @@ const steps = [
 const features = [
   { icon: AlignLeft,   color: "text-purple-500",  label: "Keep Formatting",        desc: "Tables, headings kept"      },
   { icon: Type,        color: "text-amber-500",   label: "Editable Text",          desc: "Fully selectable & editable"},
-  { icon: Target,      color: "text-emerald-500", label: "High Accuracy",          desc: "Powered by LibreOffice"     },
+  { icon: Target,      color: "text-emerald-500", label: "High Accuracy",          desc: "Powered by DoclifyAI"     },
   { icon: LayoutGrid,  color: "text-blue-500",    label: "All Layouts Supported",  desc: "Complex docs handled"       },
 ];
 

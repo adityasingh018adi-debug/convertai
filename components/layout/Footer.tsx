@@ -44,7 +44,7 @@ export function Footer() {
           </p>
           <div className="flex items-center gap-1.5 mt-3">
             <Sparkles size={11} className="text-amber-400" />
-            <span className="text-[10px] text-slate-400">Powered by LibreOffice &amp; AI</span>
+            <span className="text-[10px] text-slate-400">Powered by DoclifyAI</span>
           </div>
         </div>
 
