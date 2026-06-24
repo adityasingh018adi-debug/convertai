@@ -84,7 +84,7 @@ async function convertFile(inputBuf, originalName, targetExt, extraArgs = []) {
 
 /* ── routes ──────────────────────────────────────────────────────────────── */
 
-app.get("/health", (_req, res) => res.json({ ok: true, service: "convertai-api" }));
+app.get("/health", (_req, res) => res.json({ ok: true, service: "doclifyai-api" }));
 
 /**
  * POST /convert/word-to-pdf
@@ -143,4 +143,4 @@ app.post("/convert/pdf-to-word", requireApiKey, upload.single("file"), async (re
 
 /* ── start ───────────────────────────────────────────────────────────────── */
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`ConvertAI API ready on :${PORT}`));
+app.listen(PORT, () => console.log(`DoclifyAI API ready on :${PORT}`));

@@ -66,13 +66,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <Link href="/" onClick={onClose} className="flex items-center gap-3 min-w-0">
               <div className="relative shrink-0">
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-lg shadow-violet-900/40">
-                  <span className="text-white text-sm font-black">CA</span>
+                  <span className="text-white text-sm font-black">DA</span>
                 </div>
                 <Sparkles size={10} className="absolute -top-1 -right-1 text-amber-400" />
               </div>
               <div className="min-w-0">
                 <span className="text-xl font-black bg-gradient-to-r from-violet-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                  ConvertAI
+                  DoclifyAI
                 </span>
                 <p className="text-[11px] text-slate-500 leading-none mt-0.5 truncate">
                   Smart Tools, Simple Solutions

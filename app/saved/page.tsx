@@ -9,7 +9,7 @@ import { motion } from "framer-motion";
 const savedDocs = [
   { id: 1, icon: Receipt, iconBg: "bg-emerald-100 dark:bg-emerald-900/30", iconColor: "text-emerald-600", name: "Invoice INV-2847 - Sharma Electronics", type: "Invoice", size: "245 KB", date: "24 May 2025" },
   { id: 2, icon: Clipboard, iconBg: "bg-amber-100 dark:bg-amber-900/30", iconColor: "text-amber-600", name: "Challan CH-0192 - Delhi Supplies Co.", type: "Challan", size: "189 KB", date: "23 May 2025" },
-  { id: 3, icon: FileText, iconBg: "bg-blue-100 dark:bg-blue-900/30", iconColor: "text-blue-600", name: "Project Proposal - ConvertAI.pdf", type: "PDF", size: "1.2 MB", date: "20 May 2025" },
+  { id: 3, icon: FileText, iconBg: "bg-blue-100 dark:bg-blue-900/30", iconColor: "text-blue-600", name: "Project Proposal - DoclifyAI.pdf", type: "PDF", size: "1.2 MB", date: "20 May 2025" },
   { id: 4, icon: Receipt, iconBg: "bg-emerald-100 dark:bg-emerald-900/30", iconColor: "text-emerald-600", name: "Invoice INV-2846 - Kumar Wholesale", type: "Invoice", size: "198 KB", date: "18 May 2025" },
   { id: 5, icon: ScanText, iconBg: "bg-purple-100 dark:bg-purple-900/30", iconColor: "text-purple-600", name: "Scanned Receipt - Singh & Co.", type: "OCR", size: "87 KB", date: "15 May 2025" },
   { id: 6, icon: FileText, iconBg: "bg-blue-100 dark:bg-blue-900/30", iconColor: "text-blue-600", name: "Business Quotation - Q2 2025.docx", type: "Word", size: "345 KB", date: "10 May 2025" },

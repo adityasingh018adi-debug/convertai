@@ -75,7 +75,7 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white">Admin Dashboard</h1>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">ConvertAI — Security & Analytics Overview</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">DoclifyAI — Security & Analytics Overview</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl px-3 py-2">

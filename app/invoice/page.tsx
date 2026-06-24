@@ -154,7 +154,7 @@ export default function InvoicePage() {
                 <div className="grid grid-cols-2 gap-4 mb-6 text-xs">
                   <div>
                     <p className="text-slate-400 mb-1">From:</p>
-                    <p className="font-semibold text-slate-700 dark:text-slate-200">ConvertAI Business</p>
+                    <p className="font-semibold text-slate-700 dark:text-slate-200">DoclifyAI Business</p>
                     <p className="text-slate-500">Mumbai, Maharashtra</p>
                   </div>
                   <div>

@@ -33,10 +33,10 @@ export function Footer() {
         <div className="col-span-2 sm:col-span-1">
           <div className="flex items-center gap-2.5 mb-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-blue-600 flex items-center justify-center shadow-md">
-              <span className="text-white text-xs font-black">CA</span>
+              <span className="text-white text-xs font-black">DA</span>
             </div>
             <span className="font-black bg-gradient-to-r from-violet-500 to-blue-500 bg-clip-text text-transparent text-lg">
-              ConvertAI
+              DoclifyAI
             </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
@@ -94,7 +94,7 @@ export function Footer() {
       {/* Bottom bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-800">
         <p className="text-[11px] text-slate-400 flex items-center gap-1">
-          © 2025 ConvertAI · Made with <Heart size={10} className="text-red-400 fill-red-400" /> in India
+          © 2025 DoclifyAI · Made with <Heart size={10} className="text-red-400 fill-red-400" /> in India
         </p>
         <p className="text-[11px] text-slate-400">
           Free · Fast · Secure · No login required
