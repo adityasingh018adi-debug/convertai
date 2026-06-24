@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import {
   Plus,
   Receipt,
@@ -12,10 +13,10 @@ import {
 } from "lucide-react";
 
 const quickActions = [
-  { icon: Receipt, label: "Create Invoice", color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/30" },
-  { icon: Clipboard, label: "Create Challan", color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-900/30" },
-  { icon: ScanText, label: "Scan Document", color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-900/30" },
-  { icon: UserPlus, label: "Add Customer", color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/30" },
+  { icon: Receipt, label: "Create Invoice", color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/30", href: "/invoice" },
+  { icon: Clipboard, label: "Create Challan", color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-900/30", href: "/challan" },
+  { icon: ScanText, label: "Scan Document", color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-900/30", href: "/ocr" },
+  { icon: UserPlus, label: "Add Customer", color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/30", href: "/ledger" },
 ];
 
 const recentActivity = [
@@ -86,20 +87,21 @@ export function RightPanel() {
           </h3>
           <div className="grid grid-cols-2 gap-2">
             {quickActions.map((action, i) => (
-              <motion.button
-                key={action.label}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.07 }}
-                className={`flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-blue-200 dark:hover:border-blue-700 transition-all duration-200 hover:shadow-sm ${action.bg}`}
-              >
-                <div className={`p-1.5 rounded-lg ${action.bg}`}>
-                  <action.icon size={16} className={action.color} />
-                </div>
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-300 text-center leading-tight">
-                  {action.label}
-                </span>
-              </motion.button>
+              <Link key={action.label} href={action.href}>
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.07 }}
+                  className={`flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-blue-200 dark:hover:border-blue-700 transition-all duration-200 hover:shadow-sm cursor-pointer ${action.bg}`}
+                >
+                  <div className={`p-1.5 rounded-lg ${action.bg}`}>
+                    <action.icon size={16} className={action.color} />
+                  </div>
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-300 text-center leading-tight">
+                    {action.label}
+                  </span>
+                </motion.div>
+              </Link>
             ))}
           </div>
         </div>
@@ -164,9 +166,9 @@ export function RightPanel() {
               </li>
             ))}
           </ul>
-          <button className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm py-2.5 rounded-xl transition-colors duration-200">
+          <Link href="/upgrade" className="block w-full text-center bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm py-2.5 rounded-xl transition-colors duration-200">
             Upgrade Now →
-          </button>
+          </Link>
         </motion.div>
       </div>
     </aside>
