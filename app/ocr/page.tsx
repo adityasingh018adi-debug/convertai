@@ -10,6 +10,12 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { addHistoryItem } from "@/lib/history";
+
+// "helloworld" is OCR.space's shared public demo key — heavily rate-limited
+// across every site that uses it. Get a free key at https://ocr.space/ocrapi
+// and set NEXT_PUBLIC_OCR_API_KEY to avoid random throttling under real traffic.
+const OCR_API_KEY = process.env.NEXT_PUBLIC_OCR_API_KEY || "helloworld";
 
 const FEATURES = [
   { icon: ScanText,  color: "text-cyan-500",    label: "Smart OCR",      desc: "AI-powered extraction"  },
@@ -52,7 +58,7 @@ export default function OcrPage() {
     try {
       const form = new FormData();
       form.append("file", file);
-      form.append("apikey", "helloworld");
+      form.append("apikey", OCR_API_KEY);
       form.append("language", "eng");
       form.append("isOverlayRequired", "false");
       form.append("detectOrientation", "true");
@@ -72,6 +78,7 @@ export default function OcrPage() {
 
       if (!text) throw new Error("No text found. Try a higher quality image.");
       setResult(text); setProgress(100);
+      addHistoryItem("ocr", file.name, `${text.split(/\s+/).filter(Boolean).length} words extracted`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Extraction failed. Try a clearer image.");
     } finally { setScanning(false); }

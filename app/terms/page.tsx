@@ -108,7 +108,7 @@ export default function TermsPage() {
             </div>
             <div>
               <h1 className="text-3xl font-black text-slate-800 dark:text-white">Terms of Use</h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Last updated: May 2025</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Last updated: June 2026</p>
             </div>
           </div>
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl px-5 py-4">

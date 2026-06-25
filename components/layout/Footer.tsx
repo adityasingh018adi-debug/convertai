@@ -15,7 +15,7 @@ const tools = [
 const company = [
   { label: "Templates",    href: "/templates" },
   { label: "Recent Files", href: "/recent"    },
-  { label: "Admin",        href: "/admin"     },
+  { label: "Activity",     href: "/admin"     },
 ];
 
 const legal = [
@@ -94,7 +94,7 @@ export function Footer() {
       {/* Bottom bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-slate-800">
         <p className="text-[11px] text-slate-400 flex items-center gap-1">
-          © 2025 DoclifyAI · Made with <Heart size={10} className="text-red-400 fill-red-400" /> in India
+          © {new Date().getFullYear()} DoclifyAI · Made with <Heart size={10} className="text-red-400 fill-red-400" /> in India
         </p>
         <p className="text-[11px] text-slate-400">
           Free · Fast · Secure · No login required

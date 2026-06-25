@@ -1,22 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
-import { Clock, FileText, Receipt, Clipboard, Download, ScanText } from "lucide-react";
+import { Clock, FileText, FileOutput, Receipt, Clipboard, ScanText, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { getHistory, removeHistoryItem, timeAgo, type HistoryItem, type HistoryType } from "@/lib/history";
 
-const recentFiles = [
-  { id: 1, icon: FileText, iconBg: "bg-blue-100 dark:bg-blue-900/30", iconColor: "text-blue-600", name: "Word to PDF — Project Proposal", type: "Conversion", time: "2 mins ago" },
-  { id: 2, icon: Receipt, iconBg: "bg-emerald-100 dark:bg-emerald-900/30", iconColor: "text-emerald-600", name: "Invoice INV-2847 — Sharma Electronics", type: "Invoice", time: "15 mins ago" },
-  { id: 3, icon: Clipboard, iconBg: "bg-amber-100 dark:bg-amber-900/30", iconColor: "text-amber-600", name: "Challan CH-0192 — Delhi Supplies Co.", type: "Challan", time: "1 hr ago" },
-  { id: 4, icon: ScanText, iconBg: "bg-purple-100 dark:bg-purple-900/30", iconColor: "text-purple-600", name: "OCR Scan — Receipt Singh & Co.", type: "OCR", time: "3 hrs ago" },
-  { id: 5, icon: Receipt, iconBg: "bg-emerald-100 dark:bg-emerald-900/30", iconColor: "text-emerald-600", name: "Invoice INV-2846 — Kumar Wholesale", type: "Invoice", time: "5 hrs ago" },
-  { id: 6, icon: FileText, iconBg: "bg-blue-100 dark:bg-blue-900/30", iconColor: "text-blue-600", name: "PDF to Word — Contract Agreement", type: "Conversion", time: "Yesterday" },
-];
+const ICONS: Record<HistoryType, typeof FileText> = {
+  "word-to-pdf": FileText,
+  "pdf-to-word": FileOutput,
+  invoice: Receipt,
+  challan: Clipboard,
+  ocr: ScanText,
+};
+const COLORS: Record<HistoryType, string> = {
+  "word-to-pdf": "bg-blue-100 dark:bg-blue-900/30 text-blue-600",
+  "pdf-to-word": "bg-rose-100 dark:bg-rose-900/30 text-rose-600",
+  invoice: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600",
+  challan: "bg-amber-100 dark:bg-amber-900/30 text-amber-600",
+  ocr: "bg-purple-100 dark:bg-purple-900/30 text-purple-600",
+};
+const LABELS: Record<HistoryType, string> = {
+  "word-to-pdf": "Conversion",
+  "pdf-to-word": "Conversion",
+  invoice: "Invoice",
+  challan: "Challan",
+  ocr: "OCR",
+};
 
 export default function RecentPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [items, setItems] = useState<HistoryItem[]>([]);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setItems(getHistory());
+    setHydrated(true);
+  }, []);
+
+  const handleRemove = (id: string) => {
+    removeHistoryItem(id);
+    setItems(getHistory());
+  };
+
+  if (!hydrated) return null;
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
@@ -33,28 +61,41 @@ export default function RecentPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white">Recent Files</h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Your recently accessed documents</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Your recently used tools on this device</p>
               </div>
             </motion.div>
 
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
-              {recentFiles.map((file, i) => (
-                <motion.div key={file.id}
-                  initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }}
-                  className="flex items-center gap-4 px-5 py-4 border-b border-slate-50 dark:border-slate-700/50 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer group">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${file.iconBg}`}>
-                    <file.icon size={18} className={file.iconColor} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">{file.name}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{file.type} · {file.time}</p>
-                  </div>
-                  <button className="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-500 opacity-0 group-hover:opacity-100 transition-all">
-                    <Download size={15} />
-                  </button>
-                </motion.div>
-              ))}
-            </div>
+            {items.length === 0 ? (
+              <div className="bg-white dark:bg-slate-800 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 p-12 text-center">
+                <Clock size={40} className="text-slate-200 dark:text-slate-700 mx-auto mb-3" />
+                <p className="font-bold text-slate-700 dark:text-slate-200">No recent activity yet</p>
+                <p className="text-sm text-slate-400 mt-1">Use any tool — Word to PDF, OCR, Invoice Maker — and it&apos;ll show up here.</p>
+              </div>
+            ) : (
+              <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
+                {items.map((item, i) => {
+                  const Icon = ICONS[item.type];
+                  return (
+                    <motion.div key={item.id}
+                      initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
+                      className="flex items-center gap-4 px-5 py-4 border-b border-slate-50 dark:border-slate-700/50 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${COLORS[item.type]}`}>
+                        <Icon size={18} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">{item.name}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{LABELS[item.type]} · {item.meta} · {timeAgo(item.createdAt)}</p>
+                      </div>
+                      <button onClick={() => handleRemove(item.id)}
+                        className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                        aria-label={`Remove ${item.name} from recent files`}>
+                        <Trash2 size={15} />
+                      </button>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
 
           </div>
         </main>

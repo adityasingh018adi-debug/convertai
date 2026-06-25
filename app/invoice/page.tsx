@@ -6,6 +6,7 @@ import { TopNav } from "@/components/layout/TopNav";
 import { Receipt, Plus, Trash2, Download, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { downloadInvoicePdf } from "@/lib/generatePdf";
+import { addHistoryItem } from "@/lib/history";
 
 interface LineItem {
   id: number;
@@ -52,6 +53,7 @@ export default function InvoicePage() {
       gstin: form.gstin,
       items: items.map(({ desc, qty, rate }) => ({ desc, qty, rate })),
     });
+    addHistoryItem("invoice", `Invoice ${form.invoiceNo}.pdf`, fmt(total));
   };
 
   return (

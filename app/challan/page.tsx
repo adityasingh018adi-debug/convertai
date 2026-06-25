@@ -6,6 +6,7 @@ import { TopNav } from "@/components/layout/TopNav";
 import { Clipboard, Plus, Trash2, Download, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { downloadChallanPdf } from "@/lib/generatePdf";
+import { addHistoryItem } from "@/lib/history";
 
 interface LineItem {
   id: number;
@@ -243,13 +244,16 @@ export default function ChallanPage() {
                 </div>
 
                 <button
-                  onClick={() => downloadChallanPdf({
-                    challanNo: form.challanNo,
-                    date: form.date,
-                    deliverTo: form.deliverTo,
-                    vehicle: form.vehicle,
-                    items: items.map(({ desc, qty, unit }) => ({ desc, qty, unit })),
-                  })}
+                  onClick={() => {
+                    downloadChallanPdf({
+                      challanNo: form.challanNo,
+                      date: form.date,
+                      deliverTo: form.deliverTo,
+                      vehicle: form.vehicle,
+                      items: items.map(({ desc, qty, unit }) => ({ desc, qty, unit })),
+                    });
+                    addHistoryItem("challan", `Challan ${form.challanNo}.pdf`, `${items.length} item${items.length !== 1 ? "s" : ""}`);
+                  }}
                   className="mt-5 w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm py-3 rounded-xl transition-colors shadow-md shadow-amber-200 dark:shadow-amber-900/30">
                   <Download size={15} />
                   Download Challan PDF
