@@ -89,9 +89,17 @@ export function downloadChallanPdf(data: {
   deliverTo: string;
   vehicle: string;
   items: { desc: string; qty: number; unit: string }[];
+  fromName?: string;
+  fromAddress?: string;
+  signatureDataUrl?: string | null;
 }) {
   const doc = new jsPDF();
-  const { challanNo, date, deliverTo, vehicle, items } = data;
+  const {
+    challanNo, date, deliverTo, vehicle, items,
+    fromName = "DoclifyAI Business",
+    fromAddress = "Mumbai",
+    signatureDataUrl,
+  } = data;
 
   // Header
   doc.setFillColor(15, 23, 42);
@@ -112,7 +120,7 @@ export function downloadChallanPdf(data: {
   doc.text("DELIVER TO", 110, 42);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100, 100, 100);
-  doc.text("DoclifyAI Business, Mumbai", 14, 49);
+  doc.text(`${fromName}, ${fromAddress}`, 14, 49);
   doc.text(deliverTo.replace(/\n/g, ", "), 110, 49, { maxWidth: 80 });
 
   doc.setTextColor(15, 23, 42);
@@ -136,6 +144,13 @@ export function downloadChallanPdf(data: {
   doc.setTextColor(15, 23, 42);
   doc.text("Receiver's Signature", 30, finalY, { align: "center" });
   doc.text("Authorised Signatory", 180, finalY, { align: "center" });
+  if (signatureDataUrl) {
+    try {
+      doc.addImage(signatureDataUrl, "PNG", 155, finalY - 14, 50, 13);
+    } catch {
+      /* ignore malformed image data */
+    }
+  }
   doc.line(10, finalY + 15, 60, finalY + 15);
   doc.line(155, finalY + 15, 205, finalY + 15);
 
