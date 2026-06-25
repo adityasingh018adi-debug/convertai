@@ -9,20 +9,9 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { BarChart3 } from "lucide-react";
 
-const data = [
-  { date: "01 May", revenue: 42000, target: 50000 },
-  { date: "04 May", revenue: 58000, target: 52000 },
-  { date: "07 May", revenue: 51000, target: 55000 },
-  { date: "10 May", revenue: 72000, target: 60000 },
-  { date: "13 May", revenue: 68000, target: 65000 },
-  { date: "16 May", revenue: 89000, target: 70000 },
-  { date: "19 May", revenue: 78000, target: 72000 },
-  { date: "22 May", revenue: 95000, target: 80000 },
-  { date: "25 May", revenue: 112000, target: 85000 },
-  { date: "28 May", revenue: 104000, target: 88000 },
-  { date: "31 May", revenue: 127000, target: 95000 },
-];
+export type RevenuePoint = { date: string; revenue: number };
 
 function formatINR(value: number) {
   if (value >= 100000)
@@ -56,76 +45,68 @@ const CustomTooltip = ({
   return null;
 };
 
-export function RevenueChart() {
+export function RevenueChart({ data }: { data: RevenuePoint[] }) {
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-6 border border-slate-100 dark:border-slate-700 shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 sm:mb-6">
         <div>
           <h3 className="text-base font-bold text-slate-800 dark:text-white">
-            Revenue Overview
+            Payments Received
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            May 2025 — daily revenue trend
+            From your Khatabook ledger — real entries only
           </p>
         </div>
-        <div className="flex items-center gap-4 text-xs">
-          <span className="flex items-center gap-1.5 text-slate-500">
+        {data.length > 0 && (
+          <span className="flex items-center gap-1.5 text-xs text-slate-500">
             <span className="w-3 h-0.5 bg-blue-500 rounded-full inline-block" />
-            Revenue
+            Payments
           </span>
-          <span className="flex items-center gap-1.5 text-slate-500">
-            <span className="w-3 h-0.5 bg-purple-400 rounded-full inline-block" />
-            Target
-          </span>
-        </div>
+        )}
       </div>
-      <ResponsiveContainer width="100%" height={200}>
-        <AreaChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
-          <defs>
-            <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25} />
-              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-            </linearGradient>
-            <linearGradient id="colorTarget" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.15} />
-              <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.6} vertical={false} />
-          <XAxis
-            dataKey="date"
-            tick={{ fontSize: 11, fill: "#94a3b8" }}
-            axisLine={false}
-            tickLine={false}
-          />
-          <YAxis
-            tickFormatter={formatINR}
-            tick={{ fontSize: 11, fill: "#94a3b8" }}
-            axisLine={false}
-            tickLine={false}
-            width={55}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Area
-            type="monotone"
-            dataKey="target"
-            stroke="#8b5cf6"
-            strokeWidth={1.5}
-            strokeDasharray="4 4"
-            fill="url(#colorTarget)"
-            dot={false}
-          />
-          <Area
-            type="monotone"
-            dataKey="revenue"
-            stroke="#3b82f6"
-            strokeWidth={2.5}
-            fill="url(#colorRevenue)"
-            dot={{ fill: "#3b82f6", r: 3, strokeWidth: 2, stroke: "#fff" }}
-            activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff" }}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+
+      {data.length === 0 ? (
+        <div className="h-[200px] flex flex-col items-center justify-center text-center">
+          <BarChart3 size={32} className="text-slate-200 dark:text-slate-700 mb-2" />
+          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">No payment data yet</p>
+          <p className="text-xs text-slate-400 mt-0.5">Record &ldquo;You Got&rdquo; entries in the Khatabook ledger to see this chart fill in.</p>
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={200}>
+          <AreaChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.6} vertical={false} />
+            <XAxis
+              dataKey="date"
+              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tickFormatter={formatINR}
+              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              axisLine={false}
+              tickLine={false}
+              width={55}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Area
+              type="monotone"
+              dataKey="revenue"
+              stroke="#3b82f6"
+              strokeWidth={2.5}
+              fill="url(#colorRevenue)"
+              dot={{ fill: "#3b82f6", r: 3, strokeWidth: 2, stroke: "#fff" }}
+              activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff" }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      )}
     </div>
   );
 }

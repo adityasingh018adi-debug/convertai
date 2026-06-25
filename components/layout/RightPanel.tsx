@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
@@ -8,9 +9,9 @@ import {
   Clipboard,
   ScanText,
   UserPlus,
-  CheckCircle,
-  Rocket,
+  FileType,
 } from "lucide-react";
+import { getHistory, timeAgo, type HistoryItem, type HistoryType } from "@/lib/history";
 
 const quickActions = [
   { icon: Receipt, label: "Create Invoice", color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/30", href: "/invoice" },
@@ -19,53 +20,20 @@ const quickActions = [
   { icon: UserPlus, label: "Add Customer", color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/30", href: "/ledger" },
 ];
 
-const recentActivity = [
-  {
-    icon: Receipt,
-    iconBg: "bg-blue-100 dark:bg-blue-900/40",
-    iconColor: "text-blue-600",
-    title: "Invoice #INV-2847",
-    merchant: "Sharma Electronics",
-    amount: "₹12,500",
-    time: "2 mins ago",
-  },
-  {
-    icon: CheckCircle,
-    iconBg: "bg-emerald-100 dark:bg-emerald-900/40",
-    iconColor: "text-emerald-600",
-    title: "Payment Received",
-    merchant: "Gupta Traders",
-    amount: "₹45,000",
-    time: "15 mins ago",
-  },
-  {
-    icon: Clipboard,
-    iconBg: "bg-purple-100 dark:bg-purple-900/40",
-    iconColor: "text-purple-600",
-    title: "Challan #CH-0192",
-    merchant: "Delhi Supplies Co.",
-    amount: "₹8,750",
-    time: "1 hr ago",
-  },
-  {
-    icon: Receipt,
-    iconBg: "bg-blue-100 dark:bg-blue-900/40",
-    iconColor: "text-blue-600",
-    title: "Invoice #INV-2846",
-    merchant: "Kumar Wholesale",
-    amount: "₹32,200",
-    time: "3 hrs ago",
-  },
-  {
-    icon: ScanText,
-    iconBg: "bg-amber-100 dark:bg-amber-900/40",
-    iconColor: "text-amber-600",
-    title: "Receipt Scanned",
-    merchant: "Singh & Co.",
-    amount: "₹5,400",
-    time: "5 hrs ago",
-  },
-];
+const TYPE_ICON: Record<HistoryType, typeof Receipt> = {
+  "word-to-pdf": FileType,
+  "pdf-to-word": FileType,
+  invoice: Receipt,
+  challan: Clipboard,
+  ocr: ScanText,
+};
+const TYPE_BG: Record<HistoryType, string> = {
+  "word-to-pdf": "bg-blue-100 dark:bg-blue-900/40 text-blue-600",
+  "pdf-to-word": "bg-rose-100 dark:bg-rose-900/40 text-rose-600",
+  invoice: "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600",
+  challan: "bg-purple-100 dark:bg-purple-900/40 text-purple-600",
+  ocr: "bg-amber-100 dark:bg-amber-900/40 text-amber-600",
+};
 
 const proFeatures = [
   "Unlimited Conversions",
@@ -77,6 +45,12 @@ const proFeatures = [
 ];
 
 export function RightPanel() {
+  const [recentActivity, setRecentActivity] = useState<HistoryItem[]>([]);
+
+  useEffect(() => {
+    setRecentActivity(getHistory().slice(0, 5));
+  }, []);
+
   return (
     <aside className="hidden xl:flex w-72 flex-col bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-700 overflow-y-auto">
       <div className="p-4 space-y-6">
@@ -111,37 +85,39 @@ export function RightPanel() {
           <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">
             Recent Activity
           </h3>
-          <div className="space-y-3">
-            {recentActivity.map((item, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: 16 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.08 + 0.2 }}
-                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              >
-                <div
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${item.iconBg}`}
-                >
-                  <item.icon size={14} className={item.iconColor} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">
-                    {item.title}
-                  </p>
-                  <p className="text-xs text-slate-400 truncate">
-                    {item.merchant}
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-xs font-bold text-slate-700 dark:text-slate-200">
-                    {item.amount}
-                  </p>
-                  <p className="text-xs text-slate-400">{item.time}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          {recentActivity.length === 0 ? (
+            <p className="text-xs text-slate-400">Nothing yet — use a tool to see your activity here.</p>
+          ) : (
+            <div className="space-y-3">
+              {recentActivity.map((item, i) => {
+                const Icon = TYPE_ICON[item.type];
+                return (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, x: 16 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.08 + 0.2 }}
+                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${TYPE_BG[item.type]}`}>
+                      <Icon size={14} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">
+                        {item.name}
+                      </p>
+                      <p className="text-xs text-slate-400 truncate">
+                        {item.meta}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xs text-slate-400">{timeAgo(item.createdAt)}</p>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Upgrade to Pro */}

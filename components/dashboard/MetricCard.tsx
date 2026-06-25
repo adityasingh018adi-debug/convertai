@@ -12,7 +12,7 @@ interface MetricCardProps {
   value: string;
   rawValue: number;
   prefix?: string;
-  change: number;
+  change?: number;
   changeLabel: string;
 }
 
@@ -55,7 +55,7 @@ export function MetricCard({
   changeLabel,
 }: MetricCardProps) {
   const animatedValue = useCountUp(rawValue, 1800);
-  const isPositive = change >= 0;
+  const isPositive = (change ?? 0) >= 0;
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl p-3.5 sm:p-5 border border-slate-100 dark:border-slate-700 shadow-sm">
@@ -63,16 +63,18 @@ export function MetricCard({
         <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center ${iconBg}`}>
           <Icon size={16} className={iconColor} />
         </div>
-        <div
-          className={`flex items-center gap-1 text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full ${
-            isPositive
-              ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
-              : "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400"
-          }`}
-        >
-          {isPositive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-          {Math.abs(change)}%
-        </div>
+        {change !== undefined && (
+          <div
+            className={`flex items-center gap-1 text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full ${
+              isPositive
+                ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
+                : "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+            }`}
+          >
+            {isPositive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+            {Math.abs(change)}%
+          </div>
+        )}
       </div>
       <p className="text-base sm:text-2xl font-extrabold text-slate-800 dark:text-white mb-0.5 leading-tight">
         {formatValue(animatedValue, prefix)}

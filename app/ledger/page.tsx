@@ -93,7 +93,7 @@ function Modal({ open, onClose, title, children }: {
             </div>
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
               <h2 className="font-black text-slate-800 dark:text-white text-base">{title}</h2>
-              <button onClick={onClose}
+              <button onClick={onClose} aria-label="Close dialog"
                 className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 active:bg-slate-200 transition-colors">
                 <X size={16} />
               </button>
@@ -310,7 +310,7 @@ export default function LedgerPage() {
                     className="flex-1 text-sm bg-transparent outline-none text-slate-700 dark:text-slate-200 placeholder:text-slate-400 min-w-0"
                   />
                   {search && (
-                    <button onClick={() => setSearch("")}
+                    <button onClick={() => setSearch("")} aria-label="Clear search"
                       className="text-slate-400 active:text-slate-600 transition-colors p-1">
                       <X size={13} />
                     </button>
@@ -513,15 +513,15 @@ export default function LedgerPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <button onClick={() => openEditCust(selected)}
+                    <button onClick={() => openEditCust(selected)} aria-label="Edit customer"
                       className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 active:bg-violet-100 active:text-violet-600 transition-colors">
                       <Edit2 size={15} />
                     </button>
-                    <button onClick={() => setDeleteTarget(selected.id)}
+                    <button onClick={() => setDeleteTarget(selected.id)} aria-label="Delete customer"
                       className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 active:bg-red-100 active:text-red-600 transition-colors">
                       <Trash2 size={15} />
                     </button>
-                    <button onClick={() => setSelected(null)}
+                    <button onClick={() => setSelected(null)} aria-label="Close customer details"
                       className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 active:bg-slate-200 transition-colors">
                       <X size={15} />
                     </button>
@@ -602,7 +602,7 @@ export default function LedgerPage() {
                             <Calendar size={9} /> {fmtDate(tx.date)}
                           </p>
                         </div>
-                        <button onClick={() => deleteTx(tx.id)}
+                        <button onClick={() => deleteTx(tx.id)} aria-label="Delete transaction"
                           className="w-9 h-9 flex items-center justify-center rounded-full text-red-400 active:text-red-600 active:bg-red-50 dark:active:bg-red-900/20 transition-all opacity-0 group-hover:opacity-100 sm:opacity-100">
                           <Trash2 size={14} />
                         </button>

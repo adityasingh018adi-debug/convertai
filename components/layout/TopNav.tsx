@@ -18,6 +18,7 @@ export function TopNav({ onMenuClick }: TopNavProps) {
         <div className="flex items-center gap-3">
           <button
             onClick={onMenuClick}
+            aria-label="Open menu"
             className="md:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
           >
             <Menu size={20} />
@@ -44,6 +45,7 @@ export function TopNav({ onMenuClick }: TopNavProps) {
             <Search size={15} className="text-slate-400 shrink-0" />
             <input
               type="text"
+              aria-label="Search tools and documents"
               placeholder="Search tools, documents..."
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
@@ -65,16 +67,16 @@ export function TopNav({ onMenuClick }: TopNavProps) {
             Upgrade to Pro
           </Link>
 
-          <button className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-100 dark:active:bg-slate-800 text-slate-500 dark:text-slate-400 hidden sm:flex">
+          <button aria-label="Help" className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-100 dark:active:bg-slate-800 text-slate-500 dark:text-slate-400 hidden sm:flex">
             <HelpCircle size={18} />
           </button>
 
-          <button className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-100 dark:active:bg-slate-800 text-slate-500 dark:text-slate-400">
+          <button aria-label="Notifications" className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-100 dark:active:bg-slate-800 text-slate-500 dark:text-slate-400">
             <Bell size={18} />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
           </button>
 
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold cursor-pointer shrink-0">
+          <div aria-label="User account" className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold cursor-pointer shrink-0">
             A
           </div>
         </div>

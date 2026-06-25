@@ -134,7 +134,7 @@ export default function InvoicePage() {
                         <div className="col-span-1 text-xs font-semibold text-slate-500 text-right truncate">
                           {fmt(item.qty * item.rate)}
                         </div>
-                        <button onClick={() => removeItem(item.id)} className="text-red-400 hover:text-red-600 flex items-center justify-center">
+                        <button onClick={() => removeItem(item.id)} aria-label="Remove line item" className="text-red-400 hover:text-red-600 flex items-center justify-center">
                           <Trash2 size={13} />
                         </button>
                       </div>

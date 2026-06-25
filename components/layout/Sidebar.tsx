@@ -79,7 +79,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 </p>
               </div>
             </Link>
-            <button onClick={onClose} className="md:hidden text-slate-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5">
+            <button onClick={onClose} aria-label="Close menu" className="md:hidden text-slate-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5">
               <X size={16} />
             </button>
           </div>

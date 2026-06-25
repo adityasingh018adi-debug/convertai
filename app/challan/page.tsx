@@ -167,6 +167,7 @@ export default function ChallanPage() {
                         />
                         <button
                           onClick={() => removeItem(item.id)}
+                          aria-label="Remove line item"
                           className="col-span-1 text-red-400 hover:text-red-600 flex items-center justify-center"
                         >
                           <Trash2 size={13} />

@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
 import { RightPanel } from "@/components/layout/RightPanel";
 import { HeroBanner } from "@/components/dashboard/HeroBanner";
 import { ToolCard } from "@/components/dashboard/ToolCard";
 import { MetricCard } from "@/components/dashboard/MetricCard";
-import { RevenueChart } from "@/components/dashboard/RevenueChart";
+import { RevenueChart, type RevenuePoint } from "@/components/dashboard/RevenueChart";
 import { DragDropZone } from "@/components/ui/DragDropZone";
+import { getHistory } from "@/lib/history";
 import {
   FileText,
   FileOutput,
@@ -17,14 +18,29 @@ import {
   ScanText,
   BookOpen,
   IndianRupee,
-  Clock,
   Users,
   BarChart3,
-  ChevronDown,
   Users2,
   Star,
   Shield,
 } from "lucide-react";
+
+// Same localStorage keys as app/ledger/page.tsx — read-only here.
+const LS_CUSTOMERS = "kh_customers_v2";
+const LS_TRANSACTIONS = "kh_transactions_v2";
+
+type LedgerCustomer = { id: string; name: string };
+type LedgerTx = { customerId: string; type: "gave" | "got"; amount: number; date: string };
+
+function loadLS<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const r = localStorage.getItem(key);
+    return r ? (JSON.parse(r) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 const toolCards = [
   {
@@ -61,70 +77,63 @@ const toolCards = [
   },
 ];
 
-const metrics = [
-  {
-    icon: IndianRupee,
-    iconBg: "bg-blue-50 dark:bg-blue-900/30",
-    iconColor: "text-blue-600",
-    label: "Total Revenue",
-    value: "₹2,48,750",
-    rawValue: 248750,
-    prefix: "₹",
-    change: 12.5,
-    changeLabel: "vs last month",
-  },
-  {
-    icon: Clock,
-    iconBg: "bg-amber-50 dark:bg-amber-900/30",
-    iconColor: "text-amber-600",
-    label: "Pending Payments",
-    value: "₹78,650",
-    rawValue: 78650,
-    prefix: "₹",
-    change: 8.4,
-    changeLabel: "vs last month",
-  },
-  {
-    icon: Users,
-    iconBg: "bg-emerald-50 dark:bg-emerald-900/30",
-    iconColor: "text-emerald-600",
-    label: "Total Customers",
-    value: "356",
-    rawValue: 356,
-    prefix: "",
-    change: 10.2,
-    changeLabel: "new this month",
-  },
-  {
-    icon: BarChart3,
-    iconBg: "bg-purple-50 dark:bg-purple-900/30",
-    iconColor: "text-purple-600",
-    label: "Invoices Created",
-    value: "158",
-    rawValue: 158,
-    prefix: "",
-    change: 15.3,
-    changeLabel: "vs last month",
-  },
-];
-
+// Real, verifiable facts about the product — not invented usage metrics.
 const statsBar = [
-  { icon: Users2, value: "50K+", label: "Happy Users" },
-  { icon: FileText, value: "1M+", label: "Docs Converted" },
-  { icon: Shield, value: "99.9%", label: "Uptime" },
-  { icon: Star, value: "4.9/5", label: "User Rating" },
+  { icon: Star, value: "100% Free", label: "No hidden costs" },
+  { icon: Shield, value: "No Sign-up", label: "Use instantly" },
+  { icon: FileText, value: "6", label: "Tools in one place" },
+  { icon: Users2, value: "Local-first", label: "Files never stored" },
 ];
 
-const khatabookCustomers = [
-  { name: "Rahul Sharma", initials: "RS", color: "bg-blue-500" },
-  { name: "Priya Gupta", initials: "PG", color: "bg-purple-500" },
-  { name: "Amit Singh", initials: "AS", color: "bg-emerald-500" },
-  { name: "Neha Kumar", initials: "NK", color: "bg-amber-500" },
-  { name: "+352 more", initials: "+352", color: "bg-slate-400" },
-];
+const AVATAR_COLORS = ["bg-blue-500", "bg-purple-500", "bg-emerald-500", "bg-amber-500", "bg-rose-500"];
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+  const [customers, setCustomers] = useState<LedgerCustomer[]>([]);
+  const [totalReceivable, setTotalReceivable] = useState(0);
+  const [docsCreated, setDocsCreated] = useState(0);
+  const [revenueData, setRevenueData] = useState<RevenuePoint[]>([]);
+
+  useEffect(() => {
+    const ledgerCustomers = loadLS<LedgerCustomer[]>(LS_CUSTOMERS, []);
+    const ledgerTxs = loadLS<LedgerTx[]>(LS_TRANSACTIONS, []);
+    setCustomers(ledgerCustomers);
+
+    const receivable = ledgerCustomers.reduce((sum, c) => {
+      const bal = ledgerTxs
+        .filter((t) => t.customerId === c.id)
+        .reduce((s, t) => s + (t.type === "gave" ? t.amount : -t.amount), 0);
+      return sum + Math.max(0, bal);
+    }, 0);
+    setTotalReceivable(receivable);
+
+    setDocsCreated(getHistory().length);
+
+    const gotTxs = ledgerTxs.filter((t) => t.type === "got").sort((a, b) => a.date.localeCompare(b.date));
+    const byDay = new Map<string, number>();
+    for (const t of gotTxs) {
+      const day = new Date(t.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+      byDay.set(day, (byDay.get(day) || 0) + t.amount);
+    }
+    setRevenueData(Array.from(byDay, ([date, revenue]) => ({ date, revenue })).slice(-11));
+
+    setHydrated(true);
+  }, []);
+
+  const metrics = [
+    { icon: IndianRupee, iconBg: "bg-blue-50 dark:bg-blue-900/30", iconColor: "text-blue-600",
+      label: "Receivable (Ledger)", value: `₹${new Intl.NumberFormat("en-IN").format(totalReceivable)}`,
+      rawValue: totalReceivable, prefix: "₹", changeLabel: "from Khatabook ledger" },
+    { icon: Users, iconBg: "bg-emerald-50 dark:bg-emerald-900/30", iconColor: "text-emerald-600",
+      label: "Ledger Customers", value: String(customers.length), rawValue: customers.length, prefix: "",
+      changeLabel: "tracked in your ledger" },
+    { icon: BarChart3, iconBg: "bg-purple-50 dark:bg-purple-900/30", iconColor: "text-purple-600",
+      label: "Documents on this device", value: String(docsCreated), rawValue: docsCreated, prefix: "",
+      changeLabel: "converted, scanned or generated" },
+  ];
+
+  if (!hydrated) return null;
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
@@ -183,18 +192,29 @@ export default function Dashboard() {
                     Manage customers, track credits &amp; debits, and maintain your business ledger.
                   </p>
                   <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                    <div className="flex -space-x-2">
-                      {khatabookCustomers.map((c) => (
-                        <div
-                          key={c.name}
-                          title={c.name}
-                          className={`w-7 h-7 rounded-full ${c.color} border-2 border-white dark:border-slate-800 flex items-center justify-center text-white text-xs font-bold`}
-                        >
-                          {c.initials}
+                    {customers.length === 0 ? (
+                      <span className="text-xs text-slate-400">No customers yet — add one in the ledger</span>
+                    ) : (
+                      <>
+                        <div className="flex -space-x-2">
+                          {customers.slice(0, 4).map((c, i) => (
+                            <div
+                              key={c.id}
+                              title={c.name}
+                              className={`w-7 h-7 rounded-full ${AVATAR_COLORS[i % AVATAR_COLORS.length]} border-2 border-white dark:border-slate-800 flex items-center justify-center text-white text-xs font-bold`}
+                            >
+                              {c.name.slice(0, 1).toUpperCase()}
+                            </div>
+                          ))}
+                          {customers.length > 4 && (
+                            <div className="w-7 h-7 rounded-full bg-slate-400 border-2 border-white dark:border-slate-800 flex items-center justify-center text-white text-xs font-bold">
+                              +{customers.length - 4}
+                            </div>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                    <span className="text-xs text-slate-500">customers</span>
+                        <span className="text-xs text-slate-500">customer{customers.length !== 1 ? "s" : ""}</span>
+                      </>
+                    )}
                   </div>
                   <a href="/ledger" className="w-full text-xs font-semibold text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-700 rounded-xl py-3 active:bg-violet-50 dark:active:bg-violet-900/30 hover:bg-violet-50 dark:hover:bg-violet-900/30 transition-all text-center min-h-[44px] flex items-center justify-center">
                     Open Ledger →
@@ -204,22 +224,17 @@ export default function Dashboard() {
 
               {/* Business Overview */}
               <div>
-                <div className="flex items-center justify-between mb-4 gap-3">
-                  <h2 className="text-base font-bold text-slate-800 dark:text-white shrink-0">
-                    Business Overview
-                  </h2>
-                  <button className="flex items-center gap-1 text-xs font-medium text-slate-500 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 active:bg-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap min-h-[36px]">
-                    This Month <ChevronDown size={13} />
-                  </button>
-                </div>
+                <h2 className="text-base font-bold text-slate-800 dark:text-white mb-4">
+                  Business Overview
+                </h2>
 
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                   {metrics.map((m) => (
                     <MetricCard key={m.label} {...m} />
                   ))}
                 </div>
 
-                <RevenueChart />
+                <RevenueChart data={revenueData} />
               </div>
 
               {/* Stats Footer */}
