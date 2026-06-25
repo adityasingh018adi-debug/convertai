@@ -1,4 +1,19 @@
-export type CompanyProfile = { id: string; name: string; address: string };
+export type CompanyProfile = {
+  id: string;
+  name: string;
+  address: string;
+  logo?: string;       // dataURL
+  gst?: string;
+  pan?: string;
+  fssai?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  bankDetails?: string; // free text: bank name, account no, IFSC
+  upiId?: string;
+  signature?: string;  // dataURL
+  stamp?: string;       // dataURL
+};
 
 const LS_KEY = "doclify_companies_v1";
 const LS_LAST_USED = "doclify_companies_last_used_v1";
@@ -24,18 +39,34 @@ export function getCompanies(): CompanyProfile[] {
   }
 }
 
-export function addCompany(name: string, address: string): CompanyProfile {
-  const company: CompanyProfile = { id: uid(), name: name.trim(), address: address.trim() };
-  if (typeof window !== "undefined") {
-    try {
-      const next = [...getCompanies().filter((c) => c.id !== "default"), company];
-      localStorage.setItem(LS_KEY, JSON.stringify(next));
-      localStorage.setItem(LS_LAST_USED, company.id);
-    } catch {
-      /* ignore */
-    }
+export function getCompany(id: string): CompanyProfile | undefined {
+  return getCompanies().find((c) => c.id === id);
+}
+
+function persist(list: CompanyProfile[]) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(list));
+  } catch {
+    /* ignore */
   }
+}
+
+export function addCompany(data: Omit<CompanyProfile, "id">): CompanyProfile {
+  const company: CompanyProfile = { id: uid(), ...data, name: data.name.trim() };
+  const next = [...getCompanies().filter((c) => c.id !== "default"), company];
+  persist(next);
+  setLastUsedCompanyId(company.id);
   return company;
+}
+
+export function updateCompany(id: string, data: Partial<Omit<CompanyProfile, "id">>) {
+  const next = getCompanies().map((c) => (c.id === id ? { ...c, ...data } : c));
+  persist(next);
+}
+
+export function deleteCompany(id: string) {
+  const next = getCompanies().filter((c) => c.id !== id);
+  persist(next.length > 0 ? next : [DEFAULT_COMPANY]);
 }
 
 export function getLastUsedCompanyId(): string | null {

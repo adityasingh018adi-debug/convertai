@@ -17,6 +17,9 @@ import {
   Database,
 } from "lucide-react";
 import { getHistory, timeAgo, type HistoryItem, type HistoryType } from "@/lib/history";
+import { getInvoices, computeInvoiceTotals } from "@/lib/invoices";
+import { getChallans } from "@/lib/challans";
+import { IndianRupee, TrendingUp, AlertCircle } from "lucide-react";
 
 const TYPE_ICON: Record<HistoryType, typeof FileText> = {
   "word-to-pdf": FileType,
@@ -45,10 +48,26 @@ export default function AdminPage() {
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
+  const [invoices, setInvoices] = useState<ReturnType<typeof getInvoices>>([]);
+  const [challanCount, setChallanCount] = useState(0);
+
   useEffect(() => {
     setItems(getHistory());
+    setInvoices(getInvoices());
+    setChallanCount(getChallans().length);
     setHydrated(true);
   }, []);
+
+  const now = new Date();
+  const invoiceTotals = invoices.map((inv) => ({ inv, totals: computeInvoiceTotals(inv) }));
+  const paidInvoices = invoiceTotals.filter((i) => i.inv.status === "paid");
+  const pendingInvoices = invoiceTotals.filter((i) => i.inv.status === "pending" || i.inv.status === "overdue" || i.inv.status === "partial");
+  const monthlySales = invoiceTotals
+    .filter((i) => i.inv.status === "paid" && new Date(i.inv.date).getMonth() === now.getMonth() && new Date(i.inv.date).getFullYear() === now.getFullYear())
+    .reduce((s, i) => s + i.totals.total, 0);
+  const gstCollected = invoiceTotals.filter((i) => i.inv.status === "paid").reduce((s, i) => s + i.totals.taxAmount, 0);
+  const outstanding = pendingInvoices.reduce((s, i) => s + i.totals.total, 0);
+  const fmtMoney = (n: number) => "₹" + new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(n);
 
   const totalDocs = items.length;
   const byType = items.reduce((acc, i) => {
@@ -96,6 +115,34 @@ export default function AdminPage() {
                 and reset if you clear your browser data.
               </p>
             </motion.div>
+
+            {/* Business Overview */}
+            <div>
+              <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3">Business Overview</h2>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { label: "Total Invoices", value: invoices.length, icon: Receipt, color: "from-emerald-500 to-emerald-700" },
+                  { label: "Total Challans", value: challanCount, icon: Clipboard, color: "from-amber-500 to-orange-600" },
+                  { label: "Paid Invoices", value: paidInvoices.length, icon: TrendingUp, color: "from-blue-500 to-blue-700" },
+                  { label: "Pending / Overdue", value: pendingInvoices.length, icon: AlertCircle, color: "from-red-500 to-red-700" },
+                  { label: "Monthly Sales (Paid)", value: fmtMoney(monthlySales), icon: IndianRupee, color: "from-purple-500 to-purple-700", small: true },
+                  { label: "GST Collected", value: fmtMoney(gstCollected), icon: IndianRupee, color: "from-indigo-500 to-indigo-700", small: true },
+                  { label: "Outstanding Payments", value: fmtMoney(outstanding), icon: AlertCircle, color: "from-amber-500 to-amber-700", small: true },
+                ].map((stat, i) => (
+                  <motion.div key={stat.label}
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                    className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700 shadow-sm">
+                    <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center mb-3`}>
+                      <stat.icon size={17} className="text-white" />
+                    </div>
+                    <p className={stat.small ? "text-lg font-extrabold text-slate-800 dark:text-white truncate" : "text-2xl font-extrabold text-slate-800 dark:text-white"}>
+                      {stat.value}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{stat.label}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

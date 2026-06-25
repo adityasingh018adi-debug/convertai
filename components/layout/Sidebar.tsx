@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import {
   FileText, FileOutput, Receipt, Clipboard, ScanText,
   BookOpen, Clock, LayoutTemplate, Archive, ChevronRight,
-  Sparkles, Sun, Moon, X, Briefcase,
+  Sparkles, Sun, Moon, X, Briefcase, Building2, Users, Package, ListChecks,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -25,6 +25,16 @@ const navGroups = [
       { label: "AI Challan Maker",   href: "/challan",     gradient: "from-orange-500 to-amber-500",  icon: Clipboard  as LucideIcon },
       { label: "OCR Scanner",        href: "/ocr",         gradient: "from-cyan-400 to-teal-600",     icon: ScanText   as LucideIcon },
       { label: "Khatabook (Ledger)", href: "/ledger",      gradient: "from-violet-500 to-purple-700", icon: BookOpen   as LucideIcon },
+    ],
+  },
+  {
+    section: "BUSINESS",
+    sectionIcon: Building2,
+    items: [
+      { label: "All Invoices",     href: "/invoices",        gradient: "from-emerald-500 to-green-600", icon: ListChecks as LucideIcon },
+      { label: "Customers",        href: "/customers",       gradient: "from-blue-500 to-cyan-600",      icon: Users      as LucideIcon },
+      { label: "Product Library",  href: "/products",        gradient: "from-teal-500 to-emerald-600",   icon: Package    as LucideIcon },
+      { label: "Company Profile",  href: "/company-profile", gradient: "from-indigo-500 to-blue-600",    icon: Building2  as LucideIcon },
     ],
   },
   {

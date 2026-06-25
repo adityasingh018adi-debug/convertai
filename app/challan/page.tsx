@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
+import { useRouter } from "next/navigation";
 import {
   Clipboard, Plus, Trash2, Download, Camera, FileText as FileTextIcon,
-  Loader2, CheckCircle, AlertCircle, ChevronDown, X,
+  Loader2, CheckCircle, AlertCircle, ChevronDown, X, ArrowRightLeft,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { downloadChallanPdf } from "@/lib/generatePdf";
@@ -13,6 +14,7 @@ import { addHistoryItem } from "@/lib/history";
 import { parseChallanText } from "@/lib/parseChallanText";
 import { getCompanies, addCompany, getLastUsedCompanyId, setLastUsedCompanyId, type CompanyProfile } from "@/lib/companyProfile";
 import { SignaturePad } from "@/components/ui/SignaturePad";
+import { CHALLAN_TYPES, saveChallan, nextChallanNumber, type ChallanType } from "@/lib/challans";
 
 interface LineItem {
   id: number;
@@ -28,12 +30,16 @@ const initialItems: LineItem[] = [
 
 const OCR_API_KEY = process.env.NEXT_PUBLIC_OCR_API_KEY || "helloworld";
 const LS_SIGNATURE = "doclify_signature_v1";
+const INVOICE_PREFILL_KEY = "doclify_invoice_prefill";
 
 export default function ChallanPage() {
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [items, setItems] = useState<LineItem[]>(initialItems);
+  const [challanId, setChallanId] = useState<string | undefined>(undefined);
   const [form, setForm] = useState({
     challanNo: "CH-0192",
+    type: "Delivery Challan" as ChallanType,
     date: "2025-05-24",
     deliverTo: "Delhi Supplies Co.\n456, Karol Bagh\nNew Delhi - 110005",
     vehicle: "DL 1C 1234",
@@ -51,13 +57,14 @@ export default function ChallanPage() {
     const lastUsed = getLastUsedCompanyId();
     if (lastUsed && list.some((c) => c.id === lastUsed)) setSelectedCompanyId(lastUsed);
     else setSelectedCompanyId(list[0]?.id ?? "default");
+    setForm((f) => ({ ...f, challanNo: nextChallanNumber() }));
   }, []);
 
   const selectedCompany = companies.find((c) => c.id === selectedCompanyId) ?? companies[0];
 
   const handleAddCompany = () => {
     if (!newCompany.name.trim()) return;
-    const created = addCompany(newCompany.name, newCompany.address);
+    const created = addCompany({ name: newCompany.name, address: newCompany.address });
     setCompanies(getCompanies());
     setSelectedCompanyId(created.id);
     setLastUsedCompanyId(created.id);
@@ -287,6 +294,17 @@ export default function ChallanPage() {
                     )}
                   </div>
 
+                  <div>
+                    <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Challan Type</label>
+                    <div className="relative">
+                      <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as ChallanType })}
+                        className="w-full appearance-none px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 outline-none focus:border-amber-500 transition-colors pr-8">
+                        {CHALLAN_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                      <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">
@@ -454,24 +472,44 @@ export default function ChallanPage() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => {
-                    downloadChallanPdf({
-                      challanNo: form.challanNo,
-                      date: form.date,
-                      deliverTo: form.deliverTo,
-                      vehicle: form.vehicle,
-                      items: items.map(({ desc, qty, unit }) => ({ desc, qty, unit })),
-                      fromName: selectedCompany?.name,
-                      fromAddress: selectedCompany?.address,
-                      signatureDataUrl: signature,
-                    });
-                    addHistoryItem("challan", `Challan ${form.challanNo}.pdf`, `${items.length} item${items.length !== 1 ? "s" : ""}`);
-                  }}
-                  className="mt-5 w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm py-3 rounded-xl transition-colors shadow-md shadow-amber-200 dark:shadow-amber-900/30">
-                  <Download size={15} />
-                  Download Challan PDF
-                </button>
+                <div className="mt-5 flex gap-2">
+                  <button
+                    onClick={() => {
+                      downloadChallanPdf({
+                        challanNo: form.challanNo,
+                        date: form.date,
+                        deliverTo: form.deliverTo,
+                        vehicle: form.vehicle,
+                        items: items.map(({ desc, qty, unit }) => ({ desc, qty, unit })),
+                        fromName: selectedCompany?.name,
+                        fromAddress: selectedCompany?.address,
+                        signatureDataUrl: signature,
+                      });
+                      const record = saveChallan({
+                        id: challanId, challanNo: form.challanNo, type: form.type, date: form.date,
+                        companyId: selectedCompanyId, deliverTo: form.deliverTo, vehicle: form.vehicle,
+                        items: items.map(({ id, desc, qty, unit }) => ({ id: String(id), desc, qty, unit })),
+                      });
+                      setChallanId(record.id);
+                      addHistoryItem("challan", `Challan ${form.challanNo}.pdf`, `${items.length} item${items.length !== 1 ? "s" : ""}`);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm py-3 rounded-xl transition-colors shadow-md shadow-amber-200 dark:shadow-amber-900/30">
+                    <Download size={15} />
+                    Download Challan PDF
+                  </button>
+                  <button
+                    onClick={() => {
+                      localStorage.setItem(INVOICE_PREFILL_KEY, JSON.stringify({
+                        billTo: form.deliverTo,
+                        items: items.map(({ desc, qty }) => ({ desc, qty })),
+                      }));
+                      router.push("/invoice");
+                    }}
+                    title="Convert this challan into an invoice"
+                    className="flex items-center justify-center gap-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 font-semibold text-xs px-4 rounded-xl transition-colors shrink-0">
+                    <ArrowRightLeft size={14} /> To Invoice
+                  </button>
+                </div>
               </motion.div>
             </div>
           </div>

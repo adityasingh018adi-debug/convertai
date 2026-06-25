@@ -83,6 +83,197 @@ export function downloadInvoicePdf(data: {
   doc.save(`${invoiceNo}.pdf`);
 }
 
+async function fetchAsDataUrl(url: string): Promise<string | null> {
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) return null;
+    const blob = await resp.blob();
+    return await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+export type AdvancedInvoiceData = {
+  invoiceNo: string;
+  date: string;
+  dueDate?: string;
+  poNumber?: string;
+  deliveryDate?: string;
+  billTo: string;
+  gstin: string;
+  items: { desc: string; hsn?: string; qty: number; rate: number; gstPercent: number }[];
+  fromName: string;
+  fromAddress: string;
+  fromGst?: string;
+  logo?: string | null;
+  discountType: "percent" | "flat";
+  discountValue: number;
+  shipping: number;
+  roundOff: boolean;
+  taxMode: "cgst-sgst" | "igst";
+  notes?: string;
+  terms?: string;
+  status: string;
+  upiId?: string | null;
+  signatureDataUrl?: string | null;
+  stampDataUrl?: string | null;
+};
+
+/** Richer invoice PDF supporting tax breakdown, discounts, signature/stamp, and a UPI payment QR code. */
+export async function downloadInvoicePdfAdvanced(data: AdvancedInvoiceData) {
+  const doc = new jsPDF();
+  const {
+    invoiceNo, date, dueDate, poNumber, deliveryDate, billTo, gstin, items,
+    fromName, fromAddress, fromGst, logo, discountType, discountValue, shipping,
+    roundOff, taxMode, notes, terms, status, upiId, signatureDataUrl, stampDataUrl,
+  } = data;
+
+  const subtotal = items.reduce((s, i) => s + i.qty * i.rate, 0);
+  const discount = discountType === "percent" ? subtotal * (discountValue / 100) : discountValue;
+  const taxable = Math.max(0, subtotal - discount);
+  const taxAmount = items.reduce((s, i) => {
+    const lineTaxable = i.qty * i.rate * (taxable / Math.max(subtotal, 1));
+    return s + lineTaxable * (i.gstPercent / 100);
+  }, 0);
+  const beforeRound = taxable + taxAmount + shipping;
+  const total = roundOff ? Math.round(beforeRound) : Math.round(beforeRound * 100) / 100;
+  const cgst = taxMode === "cgst-sgst" ? taxAmount / 2 : 0;
+  const sgst = taxMode === "cgst-sgst" ? taxAmount / 2 : 0;
+  const igst = taxMode === "igst" ? taxAmount : 0;
+
+  // Header bar
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, 210, 30, "F");
+  if (logo) {
+    try { doc.addImage(logo, "PNG", 14, 5, 18, 18); } catch { /* ignore malformed image */ }
+  }
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(22);
+  doc.setFont("helvetica", "bold");
+  doc.text("INVOICE", logo ? 36 : 14, 20);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text(`#${invoiceNo}`, 196, 12, { align: "right" });
+  doc.text(`Status: ${status.toUpperCase()}`, 196, 20, { align: "right" });
+
+  // From / Bill To
+  doc.setTextColor(15, 23, 42);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.text("FROM", 14, 42);
+  doc.text("BILL TO", 110, 42);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(100, 100, 100);
+  doc.text(fromName, 14, 49);
+  doc.text(fromAddress, 14, 55, { maxWidth: 85 });
+  if (fromGst) doc.text(`GSTIN: ${fromGst}`, 14, 61);
+  doc.text(billTo.replace(/\n/g, ", "), 110, 49, { maxWidth: 80 });
+  doc.text(`GSTIN: ${gstin || "—"}`, 110, 62);
+
+  // Meta row
+  doc.setTextColor(15, 23, 42);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  const metaParts = [`Date: ${date}`];
+  if (dueDate) metaParts.push(`Due: ${dueDate}`);
+  if (poNumber) metaParts.push(`PO#: ${poNumber}`);
+  if (deliveryDate) metaParts.push(`Delivery: ${deliveryDate}`);
+  doc.text(metaParts.join("   |   "), 14, 72);
+
+  // Items table
+  autoTable(doc, {
+    startY: 78,
+    head: [["#", "Description", "HSN", "Qty", "Rate", "GST%", "Amount"]],
+    body: items.map((item, i) => [
+      i + 1, item.desc, item.hsn || "—", item.qty, formatINR(item.rate), `${item.gstPercent}%`,
+      formatINR(item.qty * item.rate),
+    ]),
+    headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: "bold" },
+    styles: { fontSize: 8 },
+    columnStyles: { 0: { cellWidth: 8 }, 1: { cellWidth: 60 } },
+  });
+
+  let y = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+  doc.setFontSize(9);
+  const summaryLines: [string, string][] = [["Subtotal", formatINR(subtotal)]];
+  if (discount > 0) summaryLines.push([`Discount${discountType === "percent" ? ` (${discountValue}%)` : ""}`, `- ${formatINR(discount)}`]);
+  if (taxMode === "cgst-sgst") {
+    summaryLines.push(["CGST", formatINR(cgst)]);
+    summaryLines.push(["SGST", formatINR(sgst)]);
+  } else {
+    summaryLines.push(["IGST", formatINR(igst)]);
+  }
+  if (shipping > 0) summaryLines.push(["Shipping", formatINR(shipping)]);
+  summaryLines.push(["TOTAL", formatINR(total)]);
+
+  for (const [label, value] of summaryLines) {
+    const isTotal = label === "TOTAL";
+    doc.setFont("helvetica", isTotal ? "bold" : "normal");
+    doc.setTextColor(isTotal ? 15 : 100, isTotal ? 23 : 100, isTotal ? 42 : 100);
+    doc.text(label, 150, y, { align: "right" });
+    doc.text(value, 196, y, { align: "right" });
+    y += 6;
+  }
+  y += 6;
+
+  // QR code for UPI payment
+  if (upiId) {
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`upi://pay?pa=${upiId}&am=${total.toFixed(2)}&cu=INR&tn=Invoice ${invoiceNo}`)}`;
+    const qrDataUrl = await fetchAsDataUrl(qrUrl);
+    if (qrDataUrl) {
+      try {
+        doc.addImage(qrDataUrl, "PNG", 14, y, 26, 26);
+        doc.setFontSize(7);
+        doc.setTextColor(100, 100, 100);
+        doc.text("Scan to pay via UPI", 27, y + 30, { align: "center" });
+      } catch { /* ignore malformed image */ }
+    }
+  }
+
+  // Notes / Terms
+  let textY = y;
+  doc.setFontSize(8);
+  doc.setTextColor(100, 100, 100);
+  if (notes) {
+    doc.setFont("helvetica", "bold");
+    doc.text("Notes:", 70, textY);
+    doc.setFont("helvetica", "normal");
+    doc.text(notes, 70, textY + 5, { maxWidth: 60 });
+    textY += 16;
+  }
+  if (terms) {
+    doc.setFont("helvetica", "bold");
+    doc.text("Terms & Conditions:", 70, textY);
+    doc.setFont("helvetica", "normal");
+    doc.text(terms, 70, textY + 5, { maxWidth: 60 });
+  }
+
+  // Signature & stamp
+  const sigY = Math.max(y + 35, textY + 20);
+  if (stampDataUrl) {
+    try { doc.addImage(stampDataUrl, "PNG", 150, sigY - 18, 22, 22); } catch { /* ignore */ }
+  }
+  if (signatureDataUrl) {
+    try { doc.addImage(signatureDataUrl, "PNG", 150, sigY, 45, 14); } catch { /* ignore */ }
+  }
+  doc.setFontSize(8);
+  doc.setTextColor(100, 100, 100);
+  doc.line(150, sigY + 16, 196, sigY + 16);
+  doc.text("Authorised Signatory", 173, sigY + 21, { align: "center" });
+
+  doc.setFontSize(8);
+  doc.setTextColor(150, 150, 150);
+  doc.text("Generated by DoclifyAI", 105, 285, { align: "center" });
+
+  doc.save(`${invoiceNo}.pdf`);
+}
+
 export function downloadChallanPdf(data: {
   challanNo: string;
   date: string;
