@@ -94,17 +94,24 @@ export default function ScanPage() {
     }
   };
 
-  const capturePhoto = () => {
+  const capturePhoto = async () => {
     const video = videoRef.current;
     if (!video) return;
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext("2d")!.drawImage(video, 0, 0);
-    setImage(canvas.toDataURL("image/jpeg", 0.92));
+    const rawDataUrl = canvas.toDataURL("image/jpeg", 0.92);
     streamRef.current?.getTracks().forEach((t) => t.stop());
     setCameraOpen(false);
-    processDocument(canvas.toDataURL("image/jpeg", 0.92));
+    try {
+      const dataUrl = await compressForUpload(rawDataUrl);
+      setImage(dataUrl);
+      processDocument(dataUrl);
+    } catch {
+      setImage(rawDataUrl);
+      processDocument(rawDataUrl);
+    }
   };
 
   const stopCamera = () => {
@@ -112,13 +119,48 @@ export default function ScanPage() {
     setCameraOpen(false);
   };
 
+  /** OCR.space's free tier rejects files over 1MB — downscale large phone-camera photos before sending. */
+  const compressForUpload = (dataUrl: string): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        const maxDim = 2000;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width *= scale;
+          height *= scale;
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+        let quality = 0.85;
+        let result = canvas.toDataURL("image/jpeg", quality);
+        // Rough size check (base64 is ~33% larger than raw bytes) — keep shrinking quality until under ~900KB raw.
+        while (result.length * 0.75 > 900_000 && quality > 0.3) {
+          quality -= 0.1;
+          result = canvas.toDataURL("image/jpeg", quality);
+        }
+        resolve(result);
+      };
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
+
   const handleFileUpload = (file: File | undefined) => {
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
-      setImage(dataUrl);
-      processDocument(dataUrl);
+    reader.onload = async (e) => {
+      const rawDataUrl = e.target?.result as string;
+      try {
+        const dataUrl = await compressForUpload(rawDataUrl);
+        setImage(dataUrl);
+        processDocument(dataUrl);
+      } catch {
+        setImage(rawDataUrl);
+        processDocument(rawDataUrl);
+      }
     };
     reader.readAsDataURL(file);
   };
