@@ -15,6 +15,7 @@ import { parseChallanText } from "@/lib/parseChallanText";
 import { getCompanies, addCompany, getLastUsedCompanyId, setLastUsedCompanyId, type CompanyProfile } from "@/lib/companyProfile";
 import { SignaturePad } from "@/components/ui/SignaturePad";
 import { CHALLAN_TYPES, saveChallan, nextChallanNumber, type ChallanType } from "@/lib/challans";
+import { showToast } from "@/lib/toast";
 
 interface LineItem {
   id: number;
@@ -107,7 +108,9 @@ export default function ChallanPage() {
     if (parsed.items.length > 0) {
       setItems(parsed.items.map((i, idx) => ({ id: Date.now() + idx, ...i })));
     }
-    setFillSuccess(`Filled ${parsed.items.length} item${parsed.items.length !== 1 ? "s" : ""} from your ${quickFillTab === "photo" ? "photo" : "text"}.`);
+    const msg = `Filled ${parsed.items.length} item${parsed.items.length !== 1 ? "s" : ""} from your ${quickFillTab === "photo" ? "photo" : "text"}.`;
+    setFillSuccess(msg);
+    showToast(msg, "success");
     setTimeout(() => setFillSuccess(""), 4000);
   };
 
@@ -492,6 +495,7 @@ export default function ChallanPage() {
                       });
                       setChallanId(record.id);
                       addHistoryItem("challan", `Challan ${form.challanNo}.pdf`, `${items.length} item${items.length !== 1 ? "s" : ""}`);
+                      showToast("Challan PDF downloaded.", "success");
                     }}
                     className="flex-1 flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm py-3 rounded-xl transition-colors shadow-md shadow-amber-200 dark:shadow-amber-900/30">
                     <Download size={15} />

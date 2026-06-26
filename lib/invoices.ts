@@ -30,7 +30,7 @@ export type InvoiceRecord = {
   notes?: string;
   terms?: string;
   status: PaymentStatus;
-  template: "modern" | "minimal" | "professional" | "gst";
+  template: "modern" | "minimal" | "professional" | "gst" | "restaurant" | "retail" | "wholesale";
   createdAt: string;
   updatedAt: string;
 };

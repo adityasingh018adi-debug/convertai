@@ -6,6 +6,7 @@ import { TopNav } from "@/components/layout/TopNav";
 import { Users, Plus, Search, Edit2, Trash2, X, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getCustomers, addCustomer, updateCustomer, deleteCustomer, searchCustomers, type Customer } from "@/lib/customers";
+import { showToast } from "@/lib/toast";
 
 const EMPTY = { name: "", gst: "", address: "", phone: "", email: "", notes: "" };
 
@@ -41,12 +42,14 @@ export default function CustomersPage() {
     else addCustomer(form);
     setCustomers(getCustomers());
     setModalOpen(false);
+    showToast(editing ? "Customer updated." : "Customer added.", "success");
   };
 
   const handleDelete = (id: string) => {
     deleteCustomer(id);
     setCustomers(getCustomers());
     setDeleteTarget(null);
+    showToast("Customer deleted.", "success");
   };
 
   if (!hydrated) return null;

@@ -6,6 +6,7 @@ import { TopNav } from "@/components/layout/TopNav";
 import { Package, Plus, Search, Edit2, Trash2, X, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getProducts, addProduct, updateProduct, deleteProduct, searchProducts, type Product } from "@/lib/products";
+import { showToast } from "@/lib/toast";
 
 const EMPTY = { name: "", sku: "", barcode: "", hsn: "", gstPercent: "18", sellingPrice: "", purchasePrice: "", unit: "pcs", category: "", image: "" };
 
@@ -62,12 +63,14 @@ export default function ProductsPage() {
     else addProduct(data);
     setProducts(getProducts());
     setModalOpen(false);
+    showToast(editing ? "Product updated." : "Product added.", "success");
   };
 
   const handleDelete = (id: string) => {
     deleteProduct(id);
     setProducts(getProducts());
     setDeleteTarget(null);
+    showToast("Product deleted.", "success");
   };
 
   const handleImage = async (file: File | undefined) => {

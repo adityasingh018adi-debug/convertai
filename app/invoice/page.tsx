@@ -6,6 +6,7 @@ import { TopNav } from "@/components/layout/TopNav";
 import {
   Receipt, Plus, Trash2, Download, Sparkles, Search, ChevronDown,
   CheckCircle, AlertCircle, Printer, Loader2, X, Camera, FileText as FileTextIcon,
+  Bookmark, Mail, Copy, Share2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { downloadInvoicePdfAdvanced } from "@/lib/generatePdf";
@@ -17,6 +18,9 @@ import {
   saveInvoice, nextInvoiceNumber, computeInvoiceTotals, getInvoice,
   type InvoiceRecord, type InvoiceLineItem, type PaymentStatus,
 } from "@/lib/invoices";
+import { getItemTemplates, saveItemTemplate, deleteItemTemplate, type ItemTemplate } from "@/lib/itemTemplates";
+import { showToast } from "@/lib/toast";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 const INVOICE_EDIT_KEY = "doclify_invoice_edit_id";
 const INVOICE_PREFILL_KEY = "doclify_invoice_prefill";
@@ -37,6 +41,16 @@ const STATUS_OPTIONS: { value: PaymentStatus; label: string; color: string }[] =
   { value: "partial", label: "Partial", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
   { value: "overdue", label: "Overdue", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
 ];
+
+const TEMPLATE_PREVIEW: Record<InvoiceRecord["template"], { title: string; headerClass: string; accentClass: string; fontClass: string }> = {
+  modern: { title: "INVOICE", headerClass: "bg-slate-900 text-white", accentClass: "text-emerald-600", fontClass: "" },
+  minimal: { title: "Invoice", headerClass: "bg-transparent text-slate-800 dark:text-white border-b border-slate-200 dark:border-slate-700", accentClass: "text-slate-800 dark:text-white", fontClass: "" },
+  professional: { title: "INVOICE", headerClass: "bg-transparent text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-slate-300", accentClass: "text-slate-800 dark:text-white", fontClass: "font-serif" },
+  gst: { title: "TAX INVOICE", headerClass: "bg-emerald-700 text-white", accentClass: "text-emerald-700", fontClass: "" },
+  restaurant: { title: "BILL", headerClass: "bg-transparent text-slate-800 dark:text-white text-center", accentClass: "text-slate-800 dark:text-white", fontClass: "font-mono" },
+  retail: { title: "RETAIL INVOICE", headerClass: "bg-violet-600 text-white", accentClass: "text-violet-600", fontClass: "" },
+  wholesale: { title: "WHOLESALE INVOICE", headerClass: "bg-amber-50 dark:bg-amber-900/20 text-slate-800 dark:text-white border-l-4 border-amber-600", accentClass: "text-amber-600", fontClass: "" },
+};
 
 export default function InvoicePage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -188,7 +202,9 @@ export default function InvoicePage() {
       })));
     }
     setCustomerId(undefined);
-    setAiSuccess(`Filled ${result.items?.length ?? 0} item${(result.items?.length ?? 0) !== 1 ? "s" : ""} with AI.`);
+    const msg = `Filled ${result.items?.length ?? 0} item${(result.items?.length ?? 0) !== 1 ? "s" : ""} with AI.`;
+    setAiSuccess(msg);
+    showToast(msg, "success");
     setTimeout(() => { setAiSuccess(""); setAiOpen(false); }, 2000);
   };
 
@@ -239,6 +255,57 @@ export default function InvoicePage() {
   const updateItem = (id: string, field: keyof InvoiceLineItem, value: string | number) =>
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, [field]: value } : i)));
 
+  // ── Item templates (save/load reusable line-item sets) ──
+  const [itemTemplates, setItemTemplates] = useState<ItemTemplate[]>([]);
+  const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+
+  useEffect(() => {
+    setItemTemplates(getItemTemplates());
+  }, []);
+
+  const handleSaveItemTemplate = () => {
+    if (!templateName.trim()) return;
+    saveItemTemplate(templateName, items.map(({ desc, hsn, qty, rate, gstPercent }) => ({ desc, hsn, qty, rate, gstPercent })));
+    setItemTemplates(getItemTemplates());
+    setTemplateName("");
+    setShowSaveTemplate(false);
+    showToast("Saved as a reusable item template.", "success");
+  };
+
+  const handleLoadItemTemplate = (t: ItemTemplate) => {
+    setItems(t.items.map((i) => ({ id: uid(), ...i })));
+    setShowTemplateDropdown(false);
+    showToast(`Loaded "${t.name}" template.`, "success");
+  };
+
+  const handleDeleteItemTemplate = (id: string) => {
+    deleteItemTemplate(id);
+    setItemTemplates(getItemTemplates());
+  };
+
+  // ── Sharing ──
+  const buildShareText = () =>
+    `Invoice ${form.invoiceNo}\nBill To: ${form.billTo.split("\n")[0]}\n` +
+    items.map((i) => `${i.desc} x${i.qty} — ${fmt(i.qty * i.rate)}`).join("\n") +
+    `\nTotal: ${fmt(totals.total)}`;
+
+  const handleShareWhatsapp = () => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(buildShareText())}`, "_blank");
+  };
+  const handleShareEmail = () => {
+    window.location.href = `mailto:?subject=${encodeURIComponent(`Invoice ${form.invoiceNo}`)}&body=${encodeURIComponent(buildShareText())}`;
+  };
+  const handleCopySummary = async () => {
+    try {
+      await navigator.clipboard.writeText(buildShareText());
+      showToast("Invoice summary copied to clipboard.", "success");
+    } catch {
+      showToast("Couldn't copy — try again.", "error");
+    }
+  };
+
   const buildRecordPayload = (status: PaymentStatus): Omit<InvoiceRecord, "id" | "createdAt" | "updatedAt"> & { id?: string } => ({
     id: editingId ?? undefined,
     invoiceNo: form.invoiceNo, date: form.date, dueDate: form.dueDate || undefined,
@@ -253,6 +320,7 @@ export default function InvoicePage() {
     const record = saveInvoice(buildRecordPayload(form.status === "draft" ? "draft" : form.status));
     setEditingId(record.id);
     setSaveState("saved");
+    showToast("Invoice saved.", "success");
     setTimeout(() => setSaveState("idle"), 2500);
   };
 
@@ -277,6 +345,9 @@ export default function InvoicePage() {
         template: form.template,
       });
       addHistoryItem("invoice", `Invoice ${form.invoiceNo}.pdf`, fmt(totals.total));
+      showToast("Invoice PDF downloaded.", "success");
+    } catch {
+      showToast("Couldn't generate the PDF. Try again.", "error");
     } finally {
       setDownloading(false);
     }
@@ -394,6 +465,9 @@ export default function InvoicePage() {
                       { value: "minimal", label: "Minimal" },
                       { value: "professional", label: "Professional" },
                       { value: "gst", label: "GST" },
+                      { value: "restaurant", label: "Restaurant" },
+                      { value: "retail", label: "Retail" },
+                      { value: "wholesale", label: "Wholesale" },
                     ] as const).map((t) => (
                       <button key={t.value} onClick={() => setForm((f) => ({ ...f, template: t.value }))}
                         className={`text-xs font-semibold py-2 rounded-lg border transition-all ${
@@ -497,12 +571,57 @@ export default function InvoicePage() {
 
                 {/* Items */}
                 <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                     <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Line Items</h3>
-                    <button onClick={addItem} className="flex items-center gap-1 text-xs text-blue-600 font-semibold hover:text-blue-700">
-                      <Plus size={13} /> Add Item
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <button onClick={() => setShowTemplateDropdown((o) => !o)}
+                          className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-semibold hover:text-slate-700">
+                          <Bookmark size={13} /> Templates
+                        </button>
+                        {showTemplateDropdown && (
+                          <div className="absolute z-20 right-0 mt-1 w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-56 overflow-y-auto">
+                            {itemTemplates.length === 0 ? (
+                              <p className="text-xs text-slate-400 px-3 py-3">No saved templates yet.</p>
+                            ) : (
+                              itemTemplates.map((t) => (
+                                <div key={t.id} className="flex items-center justify-between px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 border-b border-slate-50 dark:border-slate-700/50 last:border-0">
+                                  <button onClick={() => handleLoadItemTemplate(t)} className="flex-1 text-left text-xs text-slate-700 dark:text-slate-200">
+                                    {t.name} <span className="text-slate-400">({t.items.length})</span>
+                                  </button>
+                                  <button onClick={() => handleDeleteItemTemplate(t.id)} aria-label={`Delete template ${t.name}`} className="text-red-400 hover:text-red-600 p-1">
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+                              ))
+                            )}
+                            <button onClick={() => { setShowSaveTemplate(true); setShowTemplateDropdown(false); }}
+                              className="w-full text-left px-3 py-2 text-xs text-blue-600 font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center gap-1.5 border-t border-slate-100 dark:border-slate-700">
+                              <Plus size={12} /> Save current items as template
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <button onClick={addItem} className="flex items-center gap-1 text-xs text-blue-600 font-semibold hover:text-blue-700">
+                        <Plus size={13} /> Add Item
+                      </button>
+                    </div>
                   </div>
+
+                  {showSaveTemplate && (
+                    <div className="flex items-center gap-2 mb-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl p-2.5 border border-slate-200 dark:border-slate-600">
+                      <input value={templateName} onChange={(e) => setTemplateName(e.target.value)} autoFocus
+                        placeholder="Template name (e.g. Standard Web Dev Package)"
+                        className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500" />
+                      <button onClick={handleSaveItemTemplate} disabled={!templateName.trim()}
+                        className="text-xs font-bold bg-blue-600 disabled:bg-slate-300 text-white px-3 py-1.5 rounded-lg">
+                        Save
+                      </button>
+                      <button onClick={() => setShowSaveTemplate(false)} aria-label="Cancel" className="text-slate-400 hover:text-slate-600 p-1">
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
 
                   {/* Product search */}
                   <div className="relative mb-3">
@@ -540,6 +659,16 @@ export default function InvoicePage() {
                     <span className="col-span-1 text-xs text-slate-400 text-right">Del</span>
                   </div>
                   <div className="space-y-2">
+                    {aiLoading && (
+                      <>
+                        <div className="grid grid-cols-12 gap-1 items-center">
+                          <Skeleton className="col-span-5 h-8" /><Skeleton className="col-span-2 h-8" /><Skeleton className="col-span-2 h-8" /><Skeleton className="col-span-2 h-8" /><Skeleton className="col-span-1 h-8" />
+                        </div>
+                        <div className="grid grid-cols-12 gap-1 items-center">
+                          <Skeleton className="col-span-5 h-8" /><Skeleton className="col-span-2 h-8" /><Skeleton className="col-span-2 h-8" /><Skeleton className="col-span-2 h-8" /><Skeleton className="col-span-1 h-8" />
+                        </div>
+                      </>
+                    )}
                     {items.map((item) => (
                       <div key={item.id} className="grid grid-cols-12 gap-1 items-center">
                         <input value={item.desc} onChange={(e) => updateItem(item.id, "desc", e.target.value)}
@@ -623,11 +752,11 @@ export default function InvoicePage() {
 
               {/* Preview */}
               <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}
-                className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm self-start lg:sticky lg:top-4">
-                <div className="flex items-center justify-between mb-6">
+                className={`rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm self-start lg:sticky lg:top-4 overflow-hidden bg-white dark:bg-slate-800 ${TEMPLATE_PREVIEW[form.template].fontClass}`}>
+                <div className={`flex items-center justify-between p-6 pb-4 mb-2 ${TEMPLATE_PREVIEW[form.template].headerClass}`}>
                   <div>
-                    <h2 className="text-lg font-extrabold text-slate-800 dark:text-white">INVOICE</h2>
-                    <p className="text-xs text-slate-400">#{form.invoiceNo}</p>
+                    <h2 className="text-lg font-extrabold">{TEMPLATE_PREVIEW[form.template].title}</h2>
+                    <p className="text-xs opacity-70">#{form.invoiceNo}</p>
                   </div>
                   {selectedCompany?.logo ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -638,6 +767,7 @@ export default function InvoicePage() {
                     </div>
                   )}
                 </div>
+                <div className="p-6 pt-0">
                 <div className="grid grid-cols-2 gap-4 mb-4 text-xs">
                   <div>
                     <p className="text-slate-400 mb-1">From:</p>
@@ -689,7 +819,7 @@ export default function InvoicePage() {
                   )}
                   {totals.shipping > 0 && <div className="flex justify-between text-slate-500"><span>Shipping</span><span>{fmt(totals.shipping)}</span></div>}
                   <div className="flex justify-between font-extrabold text-slate-800 dark:text-white text-sm border-t border-slate-100 dark:border-slate-700 pt-2 mt-2">
-                    <span>Total</span><span className="text-emerald-600">{fmt(totals.total)}</span>
+                    <span>Total</span><span className={TEMPLATE_PREVIEW[form.template].accentClass}>{fmt(totals.total)}</span>
                   </div>
                 </div>
 
@@ -718,6 +848,21 @@ export default function InvoicePage() {
                       <Printer size={13} /> Print
                     </button>
                   </div>
+                  <div className="flex gap-2">
+                    <button onClick={handleShareWhatsapp} title="Share via WhatsApp"
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 font-semibold text-xs py-2.5 rounded-xl transition-colors">
+                      <Share2 size={13} /> WhatsApp
+                    </button>
+                    <button onClick={handleShareEmail} title="Share via Email"
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 font-semibold text-xs py-2.5 rounded-xl transition-colors">
+                      <Mail size={13} /> Email
+                    </button>
+                    <button onClick={handleCopySummary} title="Copy invoice summary to clipboard"
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 font-semibold text-xs py-2.5 rounded-xl transition-colors">
+                      <Copy size={13} /> Copy
+                    </button>
+                  </div>
+                </div>
                 </div>
               </motion.div>
             </div>

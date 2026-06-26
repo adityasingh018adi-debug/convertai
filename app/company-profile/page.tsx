@@ -10,6 +10,7 @@ import {
   getLastUsedCompanyId, setLastUsedCompanyId, type CompanyProfile,
 } from "@/lib/companyProfile";
 import { SignaturePad } from "@/components/ui/SignaturePad";
+import { showToast } from "@/lib/toast";
 
 const EMPTY: Omit<CompanyProfile, "id"> = {
   name: "", address: "", logo: "", gst: "", pan: "", fssai: "",
@@ -67,6 +68,7 @@ export default function CompanyProfilePage() {
     const list = getCompanies();
     setCompanies(list);
     setSaved(true);
+    showToast("Company profile saved.", "success");
     setTimeout(() => setSaved(false), 2500);
   };
 
@@ -77,6 +79,7 @@ export default function CompanyProfilePage() {
     setCompanies(list);
     setSelectedId(list[0]?.id ?? "");
     setForm(list[0] ?? EMPTY);
+    showToast("Company profile deleted.", "success");
   };
 
   const handleFileField = async (field: "logo" | "signature" | "stamp", file: File | undefined) => {
