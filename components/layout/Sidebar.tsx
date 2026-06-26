@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 import {
-  FileText, FileOutput, Receipt, Clipboard, ScanText,
+  FileText, FileOutput, Receipt, Clipboard, ScanText, ScanLine,
   BookOpen, Clock, LayoutTemplate, Archive, ChevronRight,
   Sparkles, Sun, Moon, X, Briefcase, Building2, Users, Package, ListChecks,
 } from "lucide-react";
@@ -19,6 +19,7 @@ const navGroups = [
     section: "CONVERT & TOOLS",
     sectionIcon: Sparkles,
     items: [
+      { label: "Doclify Scan",       href: "/scan",         gradient: "from-indigo-500 to-purple-600", icon: ScanLine   as LucideIcon },
       { label: "Word to PDF",        href: "/word-to-pdf", gradient: "from-violet-500 to-blue-600",   icon: FileText   as LucideIcon, text: "W" },
       { label: "PDF to Word",        href: "/pdf-to-word", gradient: "from-red-500 to-rose-500",      icon: FileOutput as LucideIcon },
       { label: "AI Invoice Maker",   href: "/invoice",     gradient: "from-emerald-500 to-green-600", icon: Receipt    as LucideIcon },

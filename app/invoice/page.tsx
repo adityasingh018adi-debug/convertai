@@ -126,15 +126,22 @@ export default function InvoicePage() {
       }
     }
 
-    // Prefill from a converted challan
+    // Prefill from a converted challan or Doclify Scan
     const prefillRaw = localStorage.getItem(INVOICE_PREFILL_KEY);
     if (prefillRaw) {
       localStorage.removeItem(INVOICE_PREFILL_KEY);
       try {
-        const prefill = JSON.parse(prefillRaw) as { billTo?: string; items?: { desc: string; qty: number }[] };
+        const prefill = JSON.parse(prefillRaw) as {
+          billTo?: string; gstin?: string; notes?: string;
+          items?: { desc: string; qty: number; rate?: number; gstPercent?: number; hsn?: string }[];
+        };
         if (prefill.billTo) setForm((f) => ({ ...f, billTo: prefill.billTo! }));
+        if (prefill.gstin) setForm((f) => ({ ...f, gstin: prefill.gstin! }));
+        if (prefill.notes) setForm((f) => ({ ...f, notes: prefill.notes! }));
         if (prefill.items?.length) {
-          setItems(prefill.items.map((i) => ({ id: uid(), desc: i.desc, qty: i.qty, rate: 0, gstPercent: 18 })));
+          setItems(prefill.items.map((i) => ({
+            id: uid(), desc: i.desc, qty: i.qty, rate: i.rate ?? 0, gstPercent: i.gstPercent ?? 18, hsn: i.hsn,
+          })));
         }
       } catch { /* ignore */ }
     }

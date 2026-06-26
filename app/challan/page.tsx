@@ -32,6 +32,7 @@ const initialItems: LineItem[] = [
 const OCR_API_KEY = process.env.NEXT_PUBLIC_OCR_API_KEY || "helloworld";
 const LS_SIGNATURE = "doclify_signature_v1";
 const INVOICE_PREFILL_KEY = "doclify_invoice_prefill";
+const CHALLAN_PREFILL_KEY = "doclify_challan_prefill";
 
 export default function ChallanPage() {
   const router = useRouter();
@@ -59,6 +60,20 @@ export default function ChallanPage() {
     if (lastUsed && list.some((c) => c.id === lastUsed)) setSelectedCompanyId(lastUsed);
     else setSelectedCompanyId(list[0]?.id ?? "default");
     setForm((f) => ({ ...f, challanNo: nextChallanNumber() }));
+
+    // Prefill from Doclify Scan or any other handoff
+    const prefillRaw = localStorage.getItem(CHALLAN_PREFILL_KEY);
+    if (prefillRaw) {
+      localStorage.removeItem(CHALLAN_PREFILL_KEY);
+      try {
+        const prefill = JSON.parse(prefillRaw) as { deliverTo?: string; vehicle?: string; items?: { desc: string; qty: number; unit: string }[] };
+        if (prefill.deliverTo) setForm((f) => ({ ...f, deliverTo: prefill.deliverTo! }));
+        if (prefill.vehicle) setForm((f) => ({ ...f, vehicle: prefill.vehicle! }));
+        if (prefill.items?.length) {
+          setItems(prefill.items.map((i, idx) => ({ id: Date.now() + idx, ...i })));
+        }
+      } catch { /* ignore */ }
+    }
   }, []);
 
   const selectedCompany = companies.find((c) => c.id === selectedCompanyId) ?? companies[0];

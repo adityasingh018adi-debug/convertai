@@ -178,6 +178,69 @@ app.post("/ai/invoice-from-image", requireApiKey, upload.single("file"), async (
   }
 });
 
+const DOCUMENT_TYPES = [
+  "Invoice", "Receipt", "Challan", "Handwritten Notes", "Printed Document",
+  "Passport", "Aadhaar Card", "PAN Card", "Business Card", "Certificate",
+  "Resume", "Book Page", "Contract", "Purchase Order", "Quotation", "Medical Report",
+];
+
+/**
+ * POST /ai/classify-document
+ * field "file" = image  →  returns { type, confidence, reasoning }
+ */
+app.post("/ai/classify-document", requireApiKey, upload.single("file"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No file uploaded." });
+  if (!req.file.mimetype.startsWith("image/")) {
+    return res.status(400).json({ error: "Only image files are supported." });
+  }
+  try {
+    const prompt = `Look at this document image and classify it as exactly one of: ${DOCUMENT_TYPES.join(", ")}. Respond with ONLY a JSON object: {"type": "<one of the categories above, verbatim>", "confidence": "high"|"medium"|"low"}. No other text.`;
+    const result = await runWorkersAI(CF_VISION_MODEL, {
+      image: Array.from(req.file.buffer),
+      prompt,
+      max_tokens: 100,
+    });
+    const parsed = extractJson(result.description || result.response);
+    if (!DOCUMENT_TYPES.includes(parsed.type)) parsed.confidence = "low";
+    res.json(parsed);
+  } catch (err) {
+    console.error("classify-document error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+const LANGUAGE_CODES = {
+  english: "en", hindi: "hi", spanish: "es", french: "fr", german: "de",
+  arabic: "ar", chinese: "zh", japanese: "ja", portuguese: "pt", russian: "ru",
+  bengali: "bn", tamil: "ta", telugu: "te", marathi: "mr", gujarati: "gu",
+};
+
+/**
+ * POST /ai/translate
+ * body: { text: string, targetLanguage: string }  →  { translatedText }
+ */
+app.post("/ai/translate", requireApiKey, express.json(), async (req, res) => {
+  const { text, targetLanguage } = req.body || {};
+  if (!text || typeof text !== "string" || !text.trim()) {
+    return res.status(400).json({ error: "Provide a non-empty 'text' field." });
+  }
+  if (!targetLanguage) {
+    return res.status(400).json({ error: "Provide a 'targetLanguage' field." });
+  }
+  try {
+    const targetLang = LANGUAGE_CODES[targetLanguage.toLowerCase()] || targetLanguage.toLowerCase();
+    const result = await runWorkersAI("@cf/meta/m2m100-1.2b", {
+      text,
+      source_lang: "en",
+      target_lang: targetLang,
+    });
+    res.json({ translatedText: result.translated_text || result.response });
+  } catch (err) {
+    console.error("translate error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 /* ── routes ──────────────────────────────────────────────────────────────── */
 
 app.get("/health", (_req, res) => res.json({ ok: true, service: "doclifyai-api" }));
