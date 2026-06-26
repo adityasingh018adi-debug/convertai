@@ -82,6 +82,104 @@ async function convertFile(inputBuf, originalName, targetExt, extraArgs = []) {
   }
 }
 
+/* ── AI invoice extraction (Anthropic Claude) ───────────────────────────── */
+
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const AI_MODEL = "claude-haiku-4-5-20251001";
+
+const INVOICE_EXTRACTION_SYSTEM_PROMPT = `You extract structured invoice data. Respond with ONLY a single JSON object (no markdown, no commentary) matching exactly this shape:
+{
+  "billTo": string,        // customer name and address, newline-separated if multiple lines
+  "gstin": string,         // GST number if mentioned, else ""
+  "notes": string,         // any extra context worth keeping, else ""
+  "items": [
+    { "desc": string, "qty": number, "rate": number, "gstPercent": number, "hsn": string }
+  ]
+}
+Rules:
+- qty and rate must be numbers, never strings.
+- If GST% isn't mentioned for an item, default to 18.
+- If HSN isn't mentioned, use "".
+- If you cannot find any line items, return an empty items array.
+- Never include any text outside the JSON object.`;
+
+async function callClaude(messages) {
+  if (!ANTHROPIC_API_KEY) {
+    throw new Error("AI features are not configured on this server yet.");
+  }
+  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: AI_MODEL,
+      max_tokens: 1024,
+      system: INVOICE_EXTRACTION_SYSTEM_PROMPT,
+      messages,
+    }),
+  });
+  if (!resp.ok) {
+    const errText = await resp.text().catch(() => "");
+    throw new Error(`AI request failed (${resp.status}): ${errText.slice(0, 200)}`);
+  }
+  const data = await resp.json();
+  const text = data.content?.[0]?.text ?? "";
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("AI did not return valid JSON.");
+  return JSON.parse(jsonMatch[0]);
+}
+
+/**
+ * POST /ai/invoice-from-text
+ * body: { text: string }  →  returns structured invoice JSON
+ */
+app.post("/ai/invoice-from-text", requireApiKey, express.json(), async (req, res) => {
+  const { text } = req.body || {};
+  if (!text || typeof text !== "string" || !text.trim()) {
+    return res.status(400).json({ error: "Provide a non-empty 'text' field." });
+  }
+  try {
+    const result = await callClaude([
+      { role: "user", content: `Extract invoice details from this description:\n\n${text}` },
+    ]);
+    res.json(result);
+  } catch (err) {
+    console.error("invoice-from-text error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /ai/invoice-from-image
+ * field "file" = image (photo of a handwritten note, receipt, or existing invoice)
+ * → returns structured invoice JSON
+ */
+app.post("/ai/invoice-from-image", requireApiKey, upload.single("file"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No file uploaded." });
+  if (!req.file.mimetype.startsWith("image/")) {
+    return res.status(400).json({ error: "Only image files are supported." });
+  }
+  try {
+    const base64 = req.file.buffer.toString("base64");
+    const result = await callClaude([
+      {
+        role: "user",
+        content: [
+          { type: "image", source: { type: "base64", media_type: req.file.mimetype, data: base64 } },
+          { type: "text", text: "Extract invoice/receipt details from this image." },
+        ],
+      },
+    ]);
+    res.json(result);
+  } catch (err) {
+    console.error("invoice-from-image error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 /* ── routes ──────────────────────────────────────────────────────────────── */
 
 app.get("/health", (_req, res) => res.json({ ok: true, service: "doclifyai-api" }));

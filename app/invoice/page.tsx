@@ -5,7 +5,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
 import {
   Receipt, Plus, Trash2, Download, Sparkles, Search, ChevronDown,
-  CheckCircle, AlertCircle, Printer, Loader2, X,
+  CheckCircle, AlertCircle, Printer, Loader2, X, Camera, FileText as FileTextIcon,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { downloadInvoicePdfAdvanced } from "@/lib/generatePdf";
@@ -20,6 +20,11 @@ import {
 
 const INVOICE_EDIT_KEY = "doclify_invoice_edit_id";
 const INVOICE_PREFILL_KEY = "doclify_invoice_prefill";
+const CONVERT_API = process.env.NEXT_PUBLIC_CONVERT_API_URL ?? "";
+const CONVERT_API_KEY = process.env.NEXT_PUBLIC_CONVERT_API_KEY;
+
+type AiExtractedItem = { desc: string; qty: number; rate: number; gstPercent?: number; hsn?: string };
+type AiExtractedInvoice = { billTo?: string; gstin?: string; notes?: string; items?: AiExtractedItem[] };
 
 function uid() {
   return Math.random().toString(36).slice(2, 10);
@@ -162,6 +167,72 @@ export default function InvoicePage() {
     setShowProductDropdown(false);
   };
 
+  // ── AI Fill (text or photo) ──
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiTab, setAiTab] = useState<"text" | "photo">("text");
+  const [aiText, setAiText] = useState("");
+  const [aiPhoto, setAiPhoto] = useState<File | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [aiSuccess, setAiSuccess] = useState("");
+
+  const applyAiResult = (result: AiExtractedInvoice) => {
+    if (result.billTo) setForm((f) => ({ ...f, billTo: result.billTo! }));
+    if (result.gstin) setForm((f) => ({ ...f, gstin: result.gstin! }));
+    if (result.notes) setForm((f) => ({ ...f, notes: result.notes! }));
+    if (result.items && result.items.length > 0) {
+      setItems(result.items.map((i) => ({
+        id: uid(), desc: i.desc, qty: i.qty || 1, rate: i.rate || 0,
+        gstPercent: i.gstPercent ?? 18, hsn: i.hsn || undefined,
+      })));
+    }
+    setCustomerId(undefined);
+    setAiSuccess(`Filled ${result.items?.length ?? 0} item${(result.items?.length ?? 0) !== 1 ? "s" : ""} with AI.`);
+    setTimeout(() => { setAiSuccess(""); setAiOpen(false); }, 2000);
+  };
+
+  const handleAiFromText = async () => {
+    if (!aiText.trim()) { setAiError("Describe the invoice first."); return; }
+    if (!CONVERT_API) { setAiError("AI service is not configured."); return; }
+    setAiLoading(true); setAiError("");
+    try {
+      const resp = await fetch(`${CONVERT_API}/ai/invoice-from-text`, {
+        method: "POST",
+        headers: { "content-type": "application/json", ...(CONVERT_API_KEY ? { "x-api-key": CONVERT_API_KEY } : {}) },
+        body: JSON.stringify({ text: aiText }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error ?? `Server error ${resp.status}`);
+      applyAiResult(data);
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : "AI Fill failed. Try rephrasing.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleAiFromPhoto = async () => {
+    if (!aiPhoto) { setAiError("Choose a photo first."); return; }
+    if (!CONVERT_API) { setAiError("AI service is not configured."); return; }
+    setAiLoading(true); setAiError("");
+    try {
+      const body = new FormData();
+      body.append("file", aiPhoto);
+      const resp = await fetch(`${CONVERT_API}/ai/invoice-from-image`, {
+        method: "POST",
+        headers: CONVERT_API_KEY ? { "x-api-key": CONVERT_API_KEY } : undefined,
+        body,
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error ?? `Server error ${resp.status}`);
+      applyAiResult(data);
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : "AI scan failed. Try a clearer photo.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const addItem = () => setItems((prev) => [...prev, { id: uid(), desc: "", qty: 1, rate: 0, gstPercent: 18 }]);
   const removeItem = (id: string) => setItems((prev) => prev.filter((i) => i.id !== id));
   const updateItem = (id: string, field: keyof InvoiceLineItem, value: string | number) =>
@@ -233,6 +304,10 @@ export default function InvoicePage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <button onClick={() => setAiOpen((o) => !o)}
+                  className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs px-4 py-2.5 rounded-xl transition-colors">
+                  <Sparkles size={13} /> AI Fill
+                </button>
                 {STATUS_OPTIONS.find((s) => s.value === form.status) && (
                   <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as PaymentStatus }))}
                     className={`text-xs font-bold px-3 py-2 rounded-xl border-0 outline-none cursor-pointer ${STATUS_OPTIONS.find((s) => s.value === form.status)!.color}`}>
@@ -241,6 +316,68 @@ export default function InvoicePage() {
                 )}
               </div>
             </motion.div>
+
+            {/* AI Fill panel */}
+            {aiOpen && (
+              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-amber-200 dark:border-amber-800 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex bg-slate-100 dark:bg-slate-700 rounded-xl p-1">
+                    <button onClick={() => { setAiTab("text"); setAiError(""); }}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${aiTab === "text" ? "bg-amber-500 text-black shadow-sm" : "text-slate-500 dark:text-slate-400"}`}>
+                      <FileTextIcon size={13} /> Describe in Text
+                    </button>
+                    <button onClick={() => { setAiTab("photo"); setAiError(""); }}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${aiTab === "photo" ? "bg-amber-500 text-black shadow-sm" : "text-slate-500 dark:text-slate-400"}`}>
+                      <Camera size={13} /> Duplicate from Photo
+                    </button>
+                  </div>
+                  <button onClick={() => setAiOpen(false)} aria-label="Close AI Fill" className="text-slate-400 hover:text-slate-600 p-1">
+                    <X size={15} />
+                  </button>
+                </div>
+
+                {aiTab === "text" ? (
+                  <div className="space-y-2">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Describe the invoice in plain English — AI extracts the customer, items, quantities, prices and GST.
+                    </p>
+                    <textarea value={aiText} onChange={(e) => setAiText(e.target.value)} rows={3}
+                      placeholder="e.g. Bill Sharma Electronics for 2 laptops at ₹45,000 each and 1 printer at ₹8,000, GST 18%, GSTIN 07AABCS1234F1ZN"
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 outline-none focus:border-amber-500 resize-none" />
+                    <button onClick={handleAiFromText} disabled={aiLoading}
+                      className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-black font-bold text-xs px-4 py-2 rounded-xl transition-colors">
+                      {aiLoading ? <><Loader2 size={13} className="animate-spin" /> Thinking…</> : <><Sparkles size={13} /> Generate Invoice</>}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Upload a photo of a receipt, handwritten note, or existing invoice — AI duplicates the details automatically.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <input type="file" accept="image/*" onChange={(e) => setAiPhoto(e.target.files?.[0] ?? null)}
+                        className="flex-1 text-xs text-slate-600 dark:text-slate-300 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-amber-100 dark:file:bg-amber-900/30 file:text-amber-700 dark:file:text-amber-400 file:text-xs file:font-semibold" />
+                      <button onClick={handleAiFromPhoto} disabled={!aiPhoto || aiLoading}
+                        className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 disabled:bg-slate-200 disabled:text-slate-400 text-black font-bold text-xs px-4 py-2 rounded-xl transition-colors shrink-0">
+                        {aiLoading ? <><Loader2 size={13} className="animate-spin" /> Scanning…</> : <><Camera size={13} /> Scan &amp; Fill</>}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {aiError && (
+                  <div className="mt-3 flex items-start gap-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2.5 text-xs text-red-600 dark:text-red-400">
+                    <AlertCircle size={13} className="shrink-0 mt-0.5" /> {aiError}
+                  </div>
+                )}
+                {aiSuccess && (
+                  <div className="mt-3 flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl px-3 py-2.5 text-xs text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle size={13} className="shrink-0" /> {aiSuccess}
+                  </div>
+                )}
+              </motion.div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Form */}
