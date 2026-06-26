@@ -82,10 +82,12 @@ async function convertFile(inputBuf, originalName, targetExt, extraArgs = []) {
   }
 }
 
-/* ── AI invoice extraction (Anthropic Claude) ───────────────────────────── */
+/* ── AI invoice extraction (Cloudflare Workers AI) ──────────────────────── */
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-const AI_MODEL = "claude-haiku-4-5-20251001";
+const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID || "15254cf3eb313f1126773e380833cc84";
+const CF_API_TOKEN = process.env.CF_API_TOKEN;
+const CF_TEXT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+const CF_VISION_MODEL = "@cf/llava-hf/llava-1.5-7b-hf";
 
 const INVOICE_EXTRACTION_SYSTEM_PROMPT = `You extract structured invoice data. Respond with ONLY a single JSON object (no markdown, no commentary) matching exactly this shape:
 {
@@ -103,33 +105,30 @@ Rules:
 - If you cannot find any line items, return an empty items array.
 - Never include any text outside the JSON object.`;
 
-async function callClaude(messages) {
-  if (!ANTHROPIC_API_KEY) {
+function extractJson(text) {
+  const jsonMatch = (text || "").match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("AI did not return valid JSON.");
+  return JSON.parse(jsonMatch[0]);
+}
+
+async function runWorkersAI(model, body) {
+  if (!CF_API_TOKEN) {
     throw new Error("AI features are not configured on this server yet.");
   }
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+  const resp = await fetch(`https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/ai/run/${model}`, {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: AI_MODEL,
-      max_tokens: 1024,
-      system: INVOICE_EXTRACTION_SYSTEM_PROMPT,
-      messages,
-    }),
+    headers: { "content-type": "application/json", authorization: `Bearer ${CF_API_TOKEN}` },
+    body: JSON.stringify(body),
   });
   if (!resp.ok) {
     const errText = await resp.text().catch(() => "");
     throw new Error(`AI request failed (${resp.status}): ${errText.slice(0, 200)}`);
   }
   const data = await resp.json();
-  const text = data.content?.[0]?.text ?? "";
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error("AI did not return valid JSON.");
-  return JSON.parse(jsonMatch[0]);
+  if (!data.success) {
+    throw new Error(data.errors?.[0]?.message || "AI request failed.");
+  }
+  return data.result;
 }
 
 /**
@@ -142,10 +141,13 @@ app.post("/ai/invoice-from-text", requireApiKey, express.json(), async (req, res
     return res.status(400).json({ error: "Provide a non-empty 'text' field." });
   }
   try {
-    const result = await callClaude([
-      { role: "user", content: `Extract invoice details from this description:\n\n${text}` },
-    ]);
-    res.json(result);
+    const result = await runWorkersAI(CF_TEXT_MODEL, {
+      messages: [
+        { role: "system", content: INVOICE_EXTRACTION_SYSTEM_PROMPT },
+        { role: "user", content: `Extract invoice details from this description:\n\n${text}` },
+      ],
+    });
+    res.json(extractJson(result.response));
   } catch (err) {
     console.error("invoice-from-text error:", err);
     res.status(500).json({ error: err.message });
@@ -163,17 +165,12 @@ app.post("/ai/invoice-from-image", requireApiKey, upload.single("file"), async (
     return res.status(400).json({ error: "Only image files are supported." });
   }
   try {
-    const base64 = req.file.buffer.toString("base64");
-    const result = await callClaude([
-      {
-        role: "user",
-        content: [
-          { type: "image", source: { type: "base64", media_type: req.file.mimetype, data: base64 } },
-          { type: "text", text: "Extract invoice/receipt details from this image." },
-        ],
-      },
-    ]);
-    res.json(result);
+    const result = await runWorkersAI(CF_VISION_MODEL, {
+      image: Array.from(req.file.buffer),
+      prompt: `${INVOICE_EXTRACTION_SYSTEM_PROMPT}\n\nExtract invoice/receipt details from this image.`,
+      max_tokens: 512,
+    });
+    res.json(extractJson(result.description || result.response));
   } catch (err) {
     console.error("invoice-from-image error:", err);
     res.status(500).json({ error: err.message });
