@@ -55,6 +55,7 @@ export default function ScanPage() {
   const [translatedText, setTranslatedText] = useState("");
 
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [pdfMenuOpen, setPdfMenuOpen] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -64,6 +65,14 @@ export default function ScanPage() {
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []);
+
+  // Assign the stream to the <video> element once it's actually mounted (cameraOpen renders it),
+  // instead of racing a fixed setTimeout against React's render — fixes a blank camera feed on slower devices.
+  useEffect(() => {
+    if (cameraOpen && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [cameraOpen]);
 
   const startCamera = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -80,9 +89,6 @@ export default function ScanPage() {
       }
       streamRef.current = stream;
       setCameraOpen(true);
-      setTimeout(() => {
-        if (videoRef.current) videoRef.current.srcObject = stream;
-      }, 50);
     } catch (err) {
       const name = err instanceof DOMException ? err.name : "";
       const message =
@@ -262,6 +268,7 @@ export default function ScanPage() {
 
   const handleConvertToInvoice = async () => {
     if (!image) return;
+    if (!CONVERT_API) { showToast("AI extraction service is not configured.", "error"); return; }
     setBusyAction("invoice");
     try {
       const file = await dataUrlToFile(image, "scan.jpg");
@@ -338,7 +345,7 @@ export default function ScanPage() {
 
   const actionCards = [
     { key: "word", icon: FileText, color: "from-blue-500 to-blue-700", label: "Convert to Word", onClick: handleConvertToWord },
-    { key: "pdf", icon: FileOutput, color: "from-red-500 to-rose-600", label: "Convert to PDF", onClick: () => setBusyAction(busyAction === "pdf-menu" ? null : "pdf-menu") },
+    { key: "pdf", icon: FileOutput, color: "from-red-500 to-rose-600", label: "Convert to PDF", onClick: () => setPdfMenuOpen((o) => !o) },
     { key: "invoice", icon: Receipt, color: "from-emerald-500 to-emerald-700", label: "Convert to Invoice", onClick: handleConvertToInvoice },
     { key: "challan", icon: Clipboard, color: "from-amber-500 to-orange-600", label: "Convert to Challan", onClick: handleConvertToChallan },
     { key: "excel", icon: FileSpreadsheet, color: "from-teal-500 to-green-600", label: "Convert to Excel", onClick: handleConvertToExcel },
@@ -478,14 +485,22 @@ export default function ScanPage() {
                 </div>
 
                 {/* PDF variant menu */}
-                {busyAction === "pdf-menu" && (
+                {pdfMenuOpen && (
                   <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
                     className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-5">
                     <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3">PDF Type</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      <button onClick={() => handleConvertToPdf("high")} className="text-xs font-semibold bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 py-3 rounded-xl">High Quality PDF</button>
-                      <button onClick={() => handleConvertToPdf("searchable")} className="text-xs font-semibold bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 py-3 rounded-xl">Searchable PDF</button>
-                      <button onClick={() => handleConvertToPdf("compressed")} className="text-xs font-semibold bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 py-3 rounded-xl">Compressed PDF</button>
+                      {([
+                        { variant: "high" as const, label: "High Quality PDF" },
+                        { variant: "searchable" as const, label: "Searchable PDF" },
+                        { variant: "compressed" as const, label: "Compressed PDF" },
+                      ]).map((opt) => (
+                        <button key={opt.variant} onClick={() => handleConvertToPdf(opt.variant)} disabled={busyAction === `pdf-${opt.variant}`}
+                          className="flex items-center justify-center gap-1.5 text-xs font-semibold bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-60 text-slate-700 dark:text-slate-200 py-3 rounded-xl">
+                          {busyAction === `pdf-${opt.variant}` && <Loader2 size={13} className="animate-spin" />}
+                          {opt.label}
+                        </button>
+                      ))}
                     </div>
                   </motion.div>
                 )}
@@ -494,7 +509,8 @@ export default function ScanPage() {
                 {translateOpen && (
                   <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
                     className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-5">
-                    <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3">Translate extracted text</h4>
+                    <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">Translate extracted text</h4>
+                    <p className="text-[11px] text-slate-400 mb-3">Works best when the scanned document is in English.</p>
                     <div className="flex items-center gap-2 mb-3">
                       <div className="relative flex-1">
                         <select value={targetLang} onChange={(e) => setTargetLang(e.target.value)}
