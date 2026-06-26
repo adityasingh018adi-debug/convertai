@@ -69,6 +69,7 @@ export default function InvoicePage() {
     roundOff: true,
     taxMode: "cgst-sgst" as "cgst-sgst" | "igst",
     status: "draft" as PaymentStatus,
+    template: "modern" as InvoiceRecord["template"],
   });
 
   // Customer picker
@@ -101,7 +102,7 @@ export default function InvoicePage() {
           poNumber: record.poNumber ?? "", deliveryDate: record.deliveryDate ?? "",
           billTo: record.billTo, gstin: record.gstin, notes: record.notes ?? "", terms: record.terms ?? "",
           discountType: record.discountType, discountValue: record.discountValue, shipping: record.shipping,
-          roundOff: record.roundOff, taxMode: record.taxMode, status: record.status,
+          roundOff: record.roundOff, taxMode: record.taxMode, status: record.status, template: record.template,
         });
         setCompanyId(record.companyId);
         setCustomerId(record.customerId);
@@ -245,7 +246,7 @@ export default function InvoicePage() {
     companyId, customerId, billTo: form.billTo, gstin: form.gstin, items,
     discountType: form.discountType, discountValue: form.discountValue, shipping: form.shipping,
     roundOff: form.roundOff, taxMode: form.taxMode, notes: form.notes || undefined, terms: form.terms || undefined,
-    status, template: "modern",
+    status, template: form.template,
   });
 
   const handleSaveDraft = () => {
@@ -273,6 +274,7 @@ export default function InvoicePage() {
         roundOff: form.roundOff, taxMode: form.taxMode, notes: form.notes, terms: form.terms,
         status: form.status, upiId: selectedCompany?.upiId,
         signatureDataUrl: selectedCompany?.signature, stampDataUrl: selectedCompany?.stamp,
+        template: form.template,
       });
       addHistoryItem("invoice", `Invoice ${form.invoiceNo}.pdf`, fmt(totals.total));
     } finally {
@@ -382,6 +384,28 @@ export default function InvoicePage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Form */}
               <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="space-y-4">
+
+                {/* Template */}
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700 shadow-sm">
+                  <label className="text-xs text-slate-500 mb-2 block">PDF Template</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {([
+                      { value: "modern", label: "Modern" },
+                      { value: "minimal", label: "Minimal" },
+                      { value: "professional", label: "Professional" },
+                      { value: "gst", label: "GST" },
+                    ] as const).map((t) => (
+                      <button key={t.value} onClick={() => setForm((f) => ({ ...f, template: t.value }))}
+                        className={`text-xs font-semibold py-2 rounded-lg border transition-all ${
+                          form.template === t.value
+                            ? "bg-emerald-600 text-white border-emerald-600"
+                            : "bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-300 border-slate-200 dark:border-slate-600"
+                        }`}>
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
                 {/* Company */}
                 {companies.length > 1 && (
