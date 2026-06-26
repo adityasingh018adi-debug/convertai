@@ -66,15 +66,31 @@ export default function ScanPage() {
   }, []);
 
   const startCamera = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      showToast("Camera capture isn't supported in this browser. Use Upload Image instead.", "error");
+      return;
+    }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      } catch {
+        // Desktops often have no "environment"-facing camera — retry with any available camera.
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
       streamRef.current = stream;
       setCameraOpen(true);
       setTimeout(() => {
         if (videoRef.current) videoRef.current.srcObject = stream;
       }, 50);
-    } catch {
-      showToast("Couldn't access your camera. Check browser permissions, or upload an image instead.", "error");
+    } catch (err) {
+      const name = err instanceof DOMException ? err.name : "";
+      const message =
+        name === "NotFoundError" ? "No camera found on this device. Use Upload Image instead." :
+        name === "NotAllowedError" ? "Camera permission was denied. Allow camera access in your browser's site settings, then try again." :
+        name === "NotReadableError" ? "Your camera is already in use by another app. Close it and try again." :
+        "Couldn't access your camera. Use Upload Image instead.";
+      showToast(message, "error");
     }
   };
 
