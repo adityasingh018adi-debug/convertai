@@ -468,7 +468,7 @@ export default function ChallanPage() {
                     <p className="text-xs text-slate-400">Authorised Signatory</p>
                     {signature ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={signature} alt="Your signature" className="w-28 h-8 object-contain mt-1" />
+                      <img src={signature} alt={"Your signature"} loading="lazy" className="w-28 h-8 object-contain mt-1" />
                     ) : (
                       <div className="w-28 h-8 border-b border-slate-300 mt-3" />
                     )}

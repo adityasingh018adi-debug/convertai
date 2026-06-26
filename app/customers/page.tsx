@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
+import { PageSkeleton } from "@/components/ui/PageSkeleton";
 import { Users, Plus, Search, Edit2, Trash2, X, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getCustomers, addCustomer, updateCustomer, deleteCustomer, searchCustomers, type Customer } from "@/lib/customers";
@@ -52,7 +53,7 @@ export default function CustomersPage() {
     showToast("Customer deleted.", "success");
   };
 
-  if (!hydrated) return null;
+  if (!hydrated) return <PageSkeleton sidebarOpen={sidebarOpen} onCloseSidebar={() => setSidebarOpen(false)} />;
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">

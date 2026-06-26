@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
+import { PageSkeleton } from "@/components/ui/PageSkeleton";
 import { ListChecks, Search, Edit2, Copy, Trash2, AlertCircle, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   getInvoices, deleteInvoice, duplicateInvoice, searchInvoices, computeInvoiceTotals,
   type InvoiceRecord, type PaymentStatus,
 } from "@/lib/invoices";
+import { showToast } from "@/lib/toast";
 
 const INVOICE_EDIT_KEY = "doclify_invoice_edit_id";
 
@@ -47,15 +49,17 @@ export default function InvoicesPage() {
   const handleDuplicate = (id: string) => {
     duplicateInvoice(id);
     setInvoices(getInvoices());
+    showToast("Invoice duplicated as a new draft.", "success");
   };
 
   const handleDelete = (id: string) => {
     deleteInvoice(id);
     setInvoices(getInvoices());
     setDeleteTarget(null);
+    showToast("Invoice deleted.", "success");
   };
 
-  if (!hydrated) return null;
+  if (!hydrated) return <PageSkeleton sidebarOpen={sidebarOpen} onCloseSidebar={() => setSidebarOpen(false)} />;
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">

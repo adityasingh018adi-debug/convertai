@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
+import { PageSkeleton } from "@/components/ui/PageSkeleton";
 import { RightPanel } from "@/components/layout/RightPanel";
 import { HeroBanner } from "@/components/dashboard/HeroBanner";
 import { ToolCard } from "@/components/dashboard/ToolCard";
@@ -133,7 +134,7 @@ export default function Dashboard() {
       changeLabel: "converted, scanned or generated" },
   ];
 
-  if (!hydrated) return null;
+  if (!hydrated) return <PageSkeleton sidebarOpen={sidebarOpen} onCloseSidebar={() => setSidebarOpen(false)} />;
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">

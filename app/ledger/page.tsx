@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
+import { PageSkeleton } from "@/components/ui/PageSkeleton";
 import { Footer } from "@/components/layout/Footer";
 import {
   BookOpen, Plus, Search, TrendingUp, TrendingDown, IndianRupee,
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { showToast } from "@/lib/toast";
 
 // ─────────────────────────────────────────────
 // Types
@@ -198,9 +200,11 @@ export default function LedgerPage() {
     if (editingCust) {
       const u = customers.map(c => c.id === editingCust.id ? { ...c, name, phone: custForm.phone.trim(), city: custForm.city.trim() } : c);
       setCustomers(u); saveLS(LS_CUSTOMERS, u);
+      showToast("Customer updated.", "success");
     } else {
       const u = [{ id: uid(), name, phone: custForm.phone.trim(), city: custForm.city.trim(), createdAt: new Date().toISOString() }, ...customers];
       setCustomers(u); saveLS(LS_CUSTOMERS, u);
+      showToast("Customer added.", "success");
     }
     setCustModal(false);
   };
@@ -210,6 +214,7 @@ export default function LedgerPage() {
     setCustomers(uc); setTransactions(ut);
     saveLS(LS_CUSTOMERS, uc); saveLS(LS_TRANSACTIONS, ut);
     setDeleteTarget(null); setSelected(null);
+    showToast("Customer deleted.", "success");
   };
 
   // ── Transaction CRUD ──
@@ -223,10 +228,12 @@ export default function LedgerPage() {
     if (!txForm.date) { setTxError("Please select a date."); return; }
     const u = [{ id: uid(), customerId: selected.id, type: txForm.type, amount: amt, note: txForm.note.trim(), date: new Date(txForm.date).toISOString() }, ...transactions];
     setTransactions(u); saveLS(LS_TRANSACTIONS, u); setTxModal(false);
+    showToast(txForm.type === "gave" ? "Credit entry added." : "Payment recorded.", "success");
   };
   const deleteTx = (txId: string) => {
     const u = transactions.filter(t => t.id !== txId);
     setTransactions(u); saveLS(LS_TRANSACTIONS, u);
+    showToast("Transaction deleted.", "success");
   };
 
   // Keep selected in sync
@@ -238,7 +245,7 @@ export default function LedgerPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customers]);
 
-  if (!hydrated) return null;
+  if (!hydrated) return <PageSkeleton sidebarOpen={sidebarOpen} onCloseSidebar={() => setSidebarOpen(false)} />;
 
   // ─────────────────────────────────────────────
   // Render

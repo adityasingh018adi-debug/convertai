@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
+import { PageSkeleton } from "@/components/ui/PageSkeleton";
 import { Building2, CheckCircle, Plus, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -88,7 +89,7 @@ export default function CompanyProfilePage() {
     setForm((f) => ({ ...f, [field]: dataUrl }));
   };
 
-  if (!hydrated) return null;
+  if (!hydrated) return <PageSkeleton sidebarOpen={sidebarOpen} onCloseSidebar={() => setSidebarOpen(false)} />;
 
   const fields: { key: keyof Omit<CompanyProfile, "id" | "logo" | "signature" | "stamp">; label: string; placeholder: string }[] = [
     { key: "name", label: "Company Name *", placeholder: "Sharma Electronics Pvt. Ltd." },
@@ -150,7 +151,7 @@ export default function CompanyProfilePage() {
                 <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden shrink-0">
                   {form.logo ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={form.logo} alt="Company logo" className="w-full h-full object-contain" />
+                    <img src={form.logo} alt={"Company logo"} loading="lazy" className="w-full h-full object-contain" />
                   ) : (
                     <Building2 size={24} className="text-slate-300" />
                   )}
@@ -193,7 +194,7 @@ export default function CompanyProfilePage() {
                   <div className="w-full h-24 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 flex items-center justify-center overflow-hidden">
                     {form.stamp ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={form.stamp} alt="Company stamp" className="max-h-full max-w-full object-contain" />
+                      <img src={form.stamp} alt={"Company stamp"} loading="lazy" className="max-h-full max-w-full object-contain" />
                     ) : (
                       <span className="text-xs text-slate-400">No stamp uploaded</span>
                     )}

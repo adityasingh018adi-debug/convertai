@@ -11,6 +11,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { addHistoryItem } from "@/lib/history";
+import { showToast } from "@/lib/toast";
 
 // "helloworld" is OCR.space's shared public demo key — heavily rate-limited
 // across every site that uses it. Get a free key at https://ocr.space/ocrapi
@@ -79,8 +80,11 @@ export default function OcrPage() {
       if (!text) throw new Error("No text found. Try a higher quality image.");
       setResult(text); setProgress(100);
       addHistoryItem("ocr", file.name, `${text.split(/\s+/).filter(Boolean).length} words extracted`);
+      showToast("Text extracted successfully.", "success");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Extraction failed. Try a clearer image.");
+      const msg = err instanceof Error ? err.message : "Extraction failed. Try a clearer image.";
+      setError(msg);
+      showToast(msg, "error");
     } finally { setScanning(false); }
   };
 
@@ -141,7 +145,7 @@ export default function OcrPage() {
                   {file ? (
                     <div className="flex gap-5 p-6 items-center">
                       {preview ? (
-                        <img src={preview} alt="preview" className="w-24 h-24 object-cover rounded-xl border border-cyan-200 dark:border-cyan-800 shrink-0" />
+                        <img src={preview} alt={"preview"} loading="lazy" className="w-24 h-24 object-cover rounded-xl border border-cyan-200 dark:border-cyan-800 shrink-0" />
                       ) : (
                         <div className="w-24 h-24 bg-cyan-100 dark:bg-cyan-900/40 rounded-xl flex items-center justify-center shrink-0">
                           <FileText size={32} className="text-cyan-500" />

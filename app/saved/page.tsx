@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
+import { PageSkeleton } from "@/components/ui/PageSkeleton";
 import { Archive, FileText, FileOutput, Receipt, Clipboard, ScanText, Trash2, Search } from "lucide-react";
 import { motion } from "framer-motion";
 import { getHistory, removeHistoryItem, timeAgo, type HistoryItem, type HistoryType } from "@/lib/history";
+import { showToast } from "@/lib/toast";
 
 const ICONS: Record<HistoryType, typeof FileText> = {
   "word-to-pdf": FileText,
@@ -43,6 +45,7 @@ export default function SavedPage() {
   const handleRemove = (id: string) => {
     removeHistoryItem(id);
     setItems(getHistory());
+    showToast("Removed from saved documents.", "success");
   };
 
   const filtered = items.filter(d =>
@@ -50,7 +53,7 @@ export default function SavedPage() {
     LABELS[d.type].toLowerCase().includes(search.toLowerCase())
   );
 
-  if (!hydrated) return null;
+  if (!hydrated) return <PageSkeleton sidebarOpen={sidebarOpen} onCloseSidebar={() => setSidebarOpen(false)} />;
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">

@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Footer } from "@/components/layout/Footer";
 import { addHistoryItem } from "@/lib/history";
+import { showToast } from "@/lib/toast";
 
 const API = process.env.NEXT_PUBLIC_CONVERT_API_URL ?? "";
 
@@ -74,8 +75,11 @@ export default function WordToPdfPage() {
       setPdfBlob(blob);
       setConverted(true); setProgress("");
       addHistoryItem("word-to-pdf", file.name.replace(/\.docx?$/i, ".pdf"), `${(blob.size / 1024).toFixed(1)} KB`);
+      showToast("Converted to PDF successfully.", "success");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Conversion failed. Please try again.");
+      const msg = err instanceof Error ? err.message : "Conversion failed. Please try again.";
+      setError(msg);
+      showToast(msg, "error");
     } finally { setConverting(false); }
   };
 

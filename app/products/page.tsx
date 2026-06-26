@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
+import { PageSkeleton } from "@/components/ui/PageSkeleton";
 import { Package, Plus, Search, Edit2, Trash2, X, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getProducts, addProduct, updateProduct, deleteProduct, searchProducts, type Product } from "@/lib/products";
@@ -79,7 +80,7 @@ export default function ProductsPage() {
     setForm((p) => ({ ...p, image: dataUrl }));
   };
 
-  if (!hydrated) return null;
+  if (!hydrated) return <PageSkeleton sidebarOpen={sidebarOpen} onCloseSidebar={() => setSidebarOpen(false)} />;
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
@@ -127,7 +128,7 @@ export default function ProductsPage() {
                     <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden shrink-0">
                       {p.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                        <img src={p.image} alt={p.name} loading="lazy" className="w-full h-full object-cover" />
                       ) : (
                         <Package size={18} className="text-slate-400" />
                       )}
@@ -176,7 +177,7 @@ export default function ProductsPage() {
                   <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden shrink-0">
                     {form.image ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={form.image} alt="" className="w-full h-full object-cover" />
+                      <img src={form.image} alt={""} loading="lazy" className="w-full h-full object-cover" />
                     ) : <Package size={18} className="text-slate-400" />}
                   </div>
                   <input type="file" accept="image/*" onChange={(e) => handleImage(e.target.files?.[0])}

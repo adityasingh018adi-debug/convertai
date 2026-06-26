@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
+import { PageSkeleton } from "@/components/ui/PageSkeleton";
 import {
   Receipt, Plus, Trash2, Download, Sparkles, Search, ChevronDown,
   CheckCircle, AlertCircle, Printer, Loader2, X, Camera, FileText as FileTextIcon,
@@ -355,7 +356,7 @@ export default function InvoicePage() {
 
   const handlePrint = () => window.print();
 
-  if (!hydrated) return null;
+  if (!hydrated) return <PageSkeleton sidebarOpen={sidebarOpen} onCloseSidebar={() => setSidebarOpen(false)} />;
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
@@ -760,7 +761,7 @@ export default function InvoicePage() {
                   </div>
                   {selectedCompany?.logo ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={selectedCompany.logo} alt="logo" className="w-10 h-10 rounded-lg object-contain" />
+                    <img src={selectedCompany.logo} alt={"logo"} loading="lazy" className="w-10 h-10 rounded-lg object-contain" />
                   ) : (
                     <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
                       {(selectedCompany?.name ?? "DA").slice(0, 2).toUpperCase()}
@@ -827,7 +828,7 @@ export default function InvoicePage() {
                   <div className="flex justify-end mb-4">
                     <div className="text-center">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={selectedCompany.signature} alt="Signature" className="h-10 mx-auto" />
+                      <img src={selectedCompany.signature} alt={"Signature"} loading="lazy" className="h-10 mx-auto" />
                       <p className="text-[10px] text-slate-400 border-t border-slate-200 dark:border-slate-700 pt-1 mt-1">Authorised Signatory</p>
                     </div>
                   </div>
