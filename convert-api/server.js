@@ -147,7 +147,8 @@ app.post("/ai/invoice-from-text", requireApiKey, express.json(), async (req, res
         { role: "user", content: `Extract invoice details from this description:\n\n${text}` },
       ],
     });
-    res.json(extractJson(result.response));
+    const content = result.choices?.[0]?.message?.content ?? result.response;
+    res.json(extractJson(typeof content === "string" ? content : JSON.stringify(content)));
   } catch (err) {
     console.error("invoice-from-text error:", err);
     res.status(500).json({ error: err.message });
