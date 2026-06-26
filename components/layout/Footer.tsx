@@ -32,9 +32,8 @@ export function Footer() {
         {/* Brand */}
         <div className="col-span-2 sm:col-span-1">
           <div className="flex items-center gap-2.5 mb-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-blue-600 flex items-center justify-center shadow-md">
-              <span className="text-white text-xs font-black">DA</span>
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/logo.svg" alt="DoclifyAI" className="w-9 h-9 rounded-xl shadow-md" />
             <span className="font-black bg-gradient-to-r from-violet-500 to-blue-500 bg-clip-text text-transparent text-lg">
               DoclifyAI
             </span>
