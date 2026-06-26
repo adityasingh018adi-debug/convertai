@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, Search, Crown, HelpCircle, Bell } from "lucide-react";
+import { Menu, Search, Crown, HelpCircle, Bell, Home, LogIn } from "lucide-react";
 
 interface TopNavProps {
   onMenuClick: () => void;
@@ -59,6 +59,22 @@ export function TopNav({ onMenuClick }: TopNavProps) {
 
         {/* Right: actions */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <Link
+            href="/"
+            aria-label="Home"
+            className="hidden sm:flex p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-100 dark:active:bg-slate-800 text-slate-500 dark:text-slate-400"
+          >
+            <Home size={18} />
+          </Link>
+
+          <Link
+            href="/login"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-lg transition-colors duration-200"
+          >
+            <LogIn size={13} />
+            Login
+          </Link>
+
           <Link
             href="/upgrade"
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-black text-xs font-bold rounded-lg transition-colors duration-200"
