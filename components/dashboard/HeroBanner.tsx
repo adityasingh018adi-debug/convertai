@@ -5,8 +5,8 @@ import { motion } from "framer-motion";
 import { Zap, Shield, Clock, Users } from "lucide-react";
 
 // Load Three.js scene client-only (no SSR)
-const HeroScene = dynamic(
-  () => import("@/components/3d/HeroScene").then((m) => m.HeroScene),
+const CinematicHero = dynamic(
+  () => import("@/components/3d/CinematicHero").then((m) => m.CinematicHero),
   { ssr: false }
 );
 
@@ -29,8 +29,8 @@ export function HeroBanner() {
 
       {/* 3D Scene — right side, DESKTOP ONLY
           Hidden on mobile because Three.js WebGL canvas bleeds outside CSS overflow bounds on Android */}
-      <div className="absolute inset-y-0 right-0 w-1/2 pointer-events-none hidden sm:block">
-        <HeroScene />
+      <div className="absolute inset-y-0 right-0 w-1/2 hidden sm:block">
+        <CinematicHero />
       </div>
 
       {/* Mobile-only: decorative gradient orbs instead of 3D */}
