@@ -2,7 +2,7 @@
 
 import { useRef, useMemo, useState, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Float, Stars, Sphere, MeshDistortMaterial, Html, RoundedBox } from "@react-three/drei";
+import { Float, Stars, Sphere, MeshDistortMaterial, Html, RoundedBox, Billboard } from "@react-three/drei";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
 
@@ -74,12 +74,14 @@ function GlassDocument({ scanT }: { scanT: number }) {
           <meshPhysicalMaterial
             color={PALETTE.white}
             transparent
-            opacity={0.15}
+            opacity={0.32}
             roughness={0.05}
             metalness={0.1}
-            transmission={0.9}
+            transmission={0.7}
             thickness={0.4}
             clearcoat={1}
+            emissive={PALETTE.blue}
+            emissiveIntensity={0.12}
           />
         </RoundedBox>
         {[0.4, 0.2, 0, -0.2, -0.4].map((y, i) => (
@@ -109,38 +111,50 @@ const FORMATS = [
 ];
 
 function OrbitingCard({ index, total, radius }: { index: number; total: number; radius: number }) {
-  const ref = useRef<THREE.Group>(null!);
+  const groupRef = useRef<THREE.Group>(null!);
   const fmt = FORMATS[index % FORMATS.length];
   const offset = (index / total) * Math.PI * 2;
 
   useFrame(({ clock }) => {
-    const t = clock.getElapsedTime() * 0.25 + offset;
-    ref.current.position.x = Math.cos(t) * radius;
-    ref.current.position.z = Math.sin(t) * radius - 1.5;
-    ref.current.position.y = Math.sin(t * 1.4) * 0.4;
-    ref.current.lookAt(0, 0, -1.5);
+    const t = clock.getElapsedTime() * 0.22 + offset;
+    groupRef.current.position.x = Math.cos(t) * radius;
+    groupRef.current.position.z = Math.sin(t) * radius * 0.55 - 1.5;
+    groupRef.current.position.y = Math.sin(t * 1.1) * 0.22;
   });
 
+  // Billboard keeps each card facing the camera at all times, instead of
+  // facing the orbit center — that mismatch was the cause of cards looking
+  // skewed/jumbled depending on where they sat in the orbit.
   return (
-    <group ref={ref}>
-      <RoundedBox args={[0.6, 0.75, 0.04]} radius={0.05} smoothness={4}>
-        <meshPhysicalMaterial
-          color={fmt.color}
-          transparent
-          opacity={0.16}
-          roughness={0.1}
-          transmission={0.85}
-          thickness={0.3}
-          clearcoat={1}
-          emissive={fmt.color}
-          emissiveIntensity={0.25}
-        />
-      </RoundedBox>
-      <Html center distanceFactor={6} style={{ pointerEvents: "none" }}>
-        <span style={{ color: "#fff", fontSize: 11, fontWeight: 700, fontFamily: "sans-serif", whiteSpace: "nowrap", textShadow: "0 0 8px rgba(59,130,246,0.8)" }}>
-          {fmt.label}
-        </span>
-      </Html>
+    <group ref={groupRef}>
+      <Billboard>
+        {/* Soft glow halo behind the card */}
+        <mesh position={[0, 0, -0.02]}>
+          <planeGeometry args={[0.95, 1.1]} />
+          <meshBasicMaterial color={fmt.color} transparent opacity={0.25} toneMapped={false} />
+        </mesh>
+        <RoundedBox args={[0.68, 0.85, 0.05]} radius={0.07} smoothness={4}>
+          <meshPhysicalMaterial
+            color={fmt.color}
+            transparent
+            opacity={0.4}
+            roughness={0.15}
+            transmission={0.6}
+            thickness={0.5}
+            clearcoat={1}
+            emissive={fmt.color}
+            emissiveIntensity={0.55}
+          />
+        </RoundedBox>
+        <Html center distanceFactor={6} style={{ pointerEvents: "none" }}>
+          <div style={{
+            color: "#fff", fontSize: 13, fontWeight: 800, fontFamily: "sans-serif",
+            whiteSpace: "nowrap", textShadow: "0 0 10px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.9)",
+          }}>
+            {fmt.label}
+          </div>
+        </Html>
+      </Billboard>
     </group>
   );
 }
@@ -182,7 +196,7 @@ function Scene() {
         {scanPhase && <GlassDocument scanT={t / 6} />}
         {(orbitPhase || logoPhase) && <AiCore />}
         {orbitPhase &&
-          FORMATS.map((_, i) => <OrbitingCard key={i} index={i} total={FORMATS.length} radius={1.9} />)}
+          FORMATS.map((_, i) => <OrbitingCard key={i} index={i} total={FORMATS.length} radius={2.4} />)}
         {logoPhase && (
           <Float speed={1.2} floatIntensity={0.4}>
             <Html center distanceFactor={6} style={{ pointerEvents: "none", textAlign: "center" }}>
@@ -217,7 +231,7 @@ export function CinematicHero() {
     <Canvas camera={{ position: [0, 0, 5.5], fov: 55 }} style={{ background: "transparent" }} dpr={[1, 1.75]}>
       <Scene />
       <EffectComposer>
-        <Bloom intensity={0.9} luminanceThreshold={0.25} luminanceSmoothing={0.9} mipmapBlur />
+        <Bloom intensity={0.6} luminanceThreshold={0.4} luminanceSmoothing={0.9} mipmapBlur />
         <Vignette eskil={false} offset={0.15} darkness={0.6} />
       </EffectComposer>
     </Canvas>
